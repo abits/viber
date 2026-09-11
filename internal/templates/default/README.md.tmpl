@@ -1,0 +1,20 @@
+# {{.Name}}
+
+{{.Description}}
+
+## Prerequisites
+
+- [Claude Code](https://claude.com/claude-code)
+- [OpenSpec](https://github.com/Fission-AI/OpenSpec) — `npm install -g @fission-ai/openspec`
+- [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) — `npm install -g markdownlint-cli2` (for `make lint-md`)
+
+## Getting started
+
+1. Fill in `intend.md` describing what you want to build.
+2. Run `claude` in this directory.
+3. Invoke `/opsx:explore` in Claude to draft requirements and tech decisions.
+4. Hand off to the sub-agent team in `.claude/agents/` — see `AGENTS.md`.
+
+## Commands
+
+    make lint-md    # markdown linting

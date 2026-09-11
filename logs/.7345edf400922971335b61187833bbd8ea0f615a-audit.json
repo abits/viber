@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/chm/Projekte/viber/logs/.7345edf400922971335b61187833bbd8ea0f615a-audit.json",
+    "files": [
+        {
+            "date": 1789161002995,
+            "name": "/home/chm/Projekte/viber/logs/mcp-puppeteer-2026-09-11.log",
+            "hash": "c87904ff72ca1806a4e9803e7b5d2f912e403d91cf9502e7a4ec391f4be2dd23"
+        }
+    ],
+    "hashType": "sha256"
+}

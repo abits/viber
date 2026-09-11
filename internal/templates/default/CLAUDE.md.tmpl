@@ -1,0 +1,17 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project
+
+**{{.Name}}** — {{.Description}}
+
+Read `intend.md` for the current problem, goals, and constraints. Requirements and tech decisions are drafted via OpenSpec (`/opsx:explore` inside Claude Code); the outputs live under `openspec/`.
+
+## Team
+
+Seven role-specific sub-agents live in `.claude/agents/`. See `AGENTS.md` for the flow and hand-off patterns.
+
+## Markdown
+
+Lint prose with `make lint-md` (`markdownlint-cli2`).
