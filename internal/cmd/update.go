@@ -54,14 +54,14 @@ EXIT STATUS
     1    runtime error (network, extraction, filesystem)
     2    usage error (bad --repo)
 `,
-		Args: cobra.NoArgs,
+		Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("update is not supported on Windows in this version")
 			}
 			owner, repo, err := splitRepoSpec(repoSpec)
 			if err != nil {
-				return UsageError(err)
+				return UsageError(cmd, err)
 			}
 			if dest == "" {
 				d, err := updater.DefaultDest("viber")
@@ -91,6 +91,7 @@ EXIT STATUS
 	return cmd
 }
 
+// splitRepoSpec parses an "owner/name" GitHub repository reference.
 func splitRepoSpec(s string) (owner, repo string, err error) {
 	parts := strings.SplitN(s, "/", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {

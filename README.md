@@ -42,8 +42,10 @@ Fully-flagged (CI-friendly):
 
     viber init --no-tui \
         --name=myproj \
-        --module=github.com/me/myproj \
         --desc="a spec-driven side project"
+
+`init` checks for `openspec` before it writes anything, so a missing dependency never leaves a
+half-created directory behind.
 
 Then in the new project:
 
