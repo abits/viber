@@ -12,9 +12,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// ErrCancelled is returned when the user aborts a run with Ctrl-C.
+var ErrCancelled = errors.New("cancelled")
+
 type stepResult struct {
-	name string
-	err  error
+	name   string
+	failed bool
 }
 
 type spinModel struct {
@@ -50,7 +53,7 @@ func (m spinModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.current = ""
 		return m, waitMsg(m.ch)
 	case FailedMsg:
-		m.results = append(m.results, stepResult{name: msg.Name, err: msg.Err})
+		m.results = append(m.results, stepResult{name: msg.Name, failed: true})
 		m.current = ""
 		m.finished = true
 		m.err = msg.Err
@@ -65,7 +68,7 @@ func (m spinModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			m.finished = true
-			m.err = errors.New("cancelled")
+			m.err = ErrCancelled
 			return m, tea.Quit
 		}
 	}
@@ -78,14 +81,16 @@ var (
 	dimStyle  = lipgloss.NewStyle().Faint(true)
 )
 
+// View renders step status only. The error text belongs to the caller of
+// Execute, which prints it once; repeating it here would double it up.
 func (m spinModel) View() string {
 	var b strings.Builder
 	for _, r := range m.results {
-		if r.err != nil {
-			fmt.Fprintf(&b, "  %s %s — %v\n", failStyle.Render("✗"), r.name, r.err)
-		} else {
-			fmt.Fprintf(&b, "  %s %s\n", okStyle.Render("✓"), r.name)
+		mark, style := "✓", okStyle
+		if r.failed {
+			mark, style = "✗", failStyle
 		}
+		fmt.Fprintf(&b, "  %s %s\n", style.Render(mark), r.name)
 	}
 	if m.current != "" {
 		fmt.Fprintf(&b, "  %s %s\n", m.spinner.View(), dimStyle.Render(m.current))
@@ -93,14 +98,29 @@ func (m spinModel) View() string {
 	return b.String()
 }
 
+// RunSpinner executes steps under a Bubble Tea spinner. It returns the first
+// step error, ErrCancelled on Ctrl-C, or ctx.Err() if ctx is cancelled.
 func RunSpinner(ctx context.Context, steps []Step) error {
 	r := &Runner{Steps: steps}
 	ch := r.Start(ctx)
+	// Once the TUI exits (Ctrl-C, or a killed program) nothing reads ch, and
+	// the runner goroutine would block forever on its next send. Draining in
+	// the background lets it observe cancellation and shut down cleanly.
+	defer func() {
+		go func() {
+			for range ch {
+			}
+		}()
+	}()
+
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
-	prog := tea.NewProgram(spinModel{spinner: sp, ch: ch})
+	prog := tea.NewProgram(spinModel{spinner: sp, ch: ch}, tea.WithContext(ctx))
 	final, err := prog.Run()
 	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return ctxErr
+		}
 		return err
 	}
 	if fm, ok := final.(spinModel); ok && fm.err != nil {
@@ -109,21 +129,31 @@ func RunSpinner(ctx context.Context, steps []Step) error {
 	return nil
 }
 
+// RunPlain executes steps writing one status line per step to w. It reports
+// which step failed but not why: the error is returned so that the caller of
+// Execute can print it exactly once.
 func RunPlain(ctx context.Context, steps []Step, w io.Writer) error {
 	r := &Runner{Steps: steps}
-	ch := r.Start(ctx)
 	n := len(steps)
 	i := 0
-	for msg := range ch {
+	lineOpen := false
+	for msg := range r.Start(ctx) {
 		switch m := msg.(type) {
 		case StartedMsg:
 			i++
 			fmt.Fprintf(w, "[%d/%d] %s...", i, n, m.Name)
+			lineOpen = true
 		case DoneMsg:
 			fmt.Fprintln(w, " ok")
+			lineOpen = false
 		case FailedMsg:
-			fmt.Fprintln(w, " FAILED")
-			fmt.Fprintf(w, "        %v\n", m.Err)
+			// A cancelled context fails a step that never started, so there
+			// may be no open status line to terminate.
+			if lineOpen {
+				fmt.Fprintln(w, " FAILED")
+			} else {
+				fmt.Fprintf(w, "%s: FAILED\n", m.Name)
+			}
 			return m.Err
 		case AllDoneMsg:
 			return nil

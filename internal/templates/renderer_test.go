@@ -12,10 +12,10 @@ func TestRender(t *testing.T) {
 	src := fstest.MapFS{
 		"README.md.tmpl":     &fstest.MapFile{Data: []byte("# {{.Name}}\n{{.Description}}\n")},
 		"hello.txt":          &fstest.MapFile{Data: []byte("plain\n")},
-		"sub/nested.md.tmpl": &fstest.MapFile{Data: []byte("nested: {{.Module}}\n")},
+		"sub/nested.md.tmpl": &fstest.MapFile{Data: []byte("nested: {{.Description}}\n")},
 	}
 	dst := t.TempDir()
-	data := Data{Name: "myproj", Description: "hello", Module: "github.com/me/myproj"}
+	data := Data{Name: "myproj", Description: "hello"}
 
 	if err := Render(src, dst, data, false); err != nil {
 		t.Fatal(err)
@@ -24,7 +24,7 @@ func TestRender(t *testing.T) {
 	cases := map[string]string{
 		"README.md":     "# myproj\nhello\n",
 		"hello.txt":     "plain\n",
-		"sub/nested.md": "nested: github.com/me/myproj\n",
+		"sub/nested.md": "nested: hello\n",
 	}
 	for name, want := range cases {
 		got, err := os.ReadFile(filepath.Join(dst, name))

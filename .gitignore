@@ -37,6 +37,5 @@ go.work.sum
 /man/
 /completions/
 /logs/
-.env
 package-lock.json
 /node_modules/

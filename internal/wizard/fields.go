@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// field describes one prompt in the wizard. A nil validate accepts any value.
 type field struct {
 	prompt     string
 	hint       string
@@ -15,11 +16,9 @@ type field struct {
 	set        func(*Answers, string)
 }
 
-var (
-	nameRe   = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9._-]*$`)
-	moduleRe = regexp.MustCompile(`^[a-zA-Z0-9._~-]+(?:/[a-zA-Z0-9._~-]+)+$`)
-)
+var nameRe = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9._-]*$`)
 
+// fields is the prompt sequence, in the order the wizard asks them.
 var fields = []field{
 	{
 		prompt:   "Project name",
@@ -56,32 +55,14 @@ var fields = []field{
 		set: func(a *Answers, s string) { a.Dir = s },
 	},
 	{
-		prompt:   "Module path",
-		hint:     "e.g. github.com/<you>/<name>. Leave empty if not a Go project.",
-		required: false,
-		validate: func(s string) error {
-			if s == "" {
-				return nil
-			}
-			if !moduleRe.MatchString(s) {
-				return fmt.Errorf("module path should look like host/org/name")
-			}
-			return nil
-		},
-		getDefault: func(a Answers) string { return a.Module },
-		set:        func(a *Answers, s string) { a.Module = s },
-	},
-	{
 		prompt:     "One-line description",
 		hint:       "Shown in README.md and CLAUDE.md.",
-		validate:   func(string) error { return nil },
 		getDefault: func(a Answers) string { return a.Description },
 		set:        func(a *Answers, s string) { a.Description = s },
 	},
 	{
 		prompt:     "Git remote (optional)",
 		hint:       "e.g. git@github.com:<you>/<name>.git. Leave empty to skip.",
-		validate:   func(string) error { return nil },
 		getDefault: func(a Answers) string { return a.Remote },
 		set:        func(a *Answers, s string) { a.Remote = s },
 	},

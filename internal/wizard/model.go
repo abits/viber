@@ -12,6 +12,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Model is the Bubble Tea model backing the interactive init wizard. It walks
+// the prompts in [fields] one at a time, validating each before advancing.
 type Model struct {
 	fields    []field
 	input     textinput.Model
@@ -22,6 +24,8 @@ type Model struct {
 	done      bool
 }
 
+// New builds a wizard pre-filled with seed; seeded values become the default
+// for their prompt.
 func New(seed Answers) Model {
 	m := Model{fields: fields, ans: seed}
 	m.input = textinput.New()
@@ -97,15 +101,24 @@ func (m Model) View() string {
 	return b.String()
 }
 
-func Run(_ context.Context, seed Answers) (Answers, error) {
-	prog := tea.NewProgram(New(seed))
+// ErrCancelled is returned when the user aborts the wizard with Ctrl-C or Esc.
+var ErrCancelled = errors.New("wizard cancelled")
+
+// Run prompts for the answers still missing from seed and returns the completed
+// set. It reports ErrCancelled if the user aborts, or ctx.Err() if ctx is
+// cancelled.
+func Run(ctx context.Context, seed Answers) (Answers, error) {
+	prog := tea.NewProgram(New(seed), tea.WithContext(ctx))
 	final, err := prog.Run()
 	if err != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return Answers{}, ctxErr
+		}
 		return Answers{}, err
 	}
 	fm, _ := final.(Model)
 	if fm.cancelled {
-		return Answers{}, errors.New("wizard cancelled")
+		return Answers{}, ErrCancelled
 	}
 	fm.ans.Dir = filepath.Clean(fm.ans.Dir)
 	return fm.ans, nil

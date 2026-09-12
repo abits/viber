@@ -15,7 +15,7 @@ SYNOPSIS
 DESCRIPTION
     Prints the same string as 'viber --version'.
 `,
-		Args: cobra.NoArgs,
+		Args: usageArgs(cobra.NoArgs),
 		Run: func(cmd *cobra.Command, _ []string) {
 			cmd.Println(cmd.Root().Version)
 		},

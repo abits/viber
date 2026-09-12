@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -20,8 +20,8 @@ import (
 
 func newInitCmd() *cobra.Command {
 	var (
-		name, module, desc, remote, from string
-		force, noTUI                     bool
+		name, desc, remote, from string
+		force, noTUI             bool
 	)
 	cmd := &cobra.Command{
 		Use:   "init [name] [dir]",
@@ -33,20 +33,23 @@ SYNOPSIS
     viber init [name] [dir] [flags]
 
 DESCRIPTION
-    Scaffolds a new project directory populated from an embedded template set,
-    initializes a git repository, verifies that 'openspec' is installed, and
-    runs 'openspec init' so Claude Code's /opsx:explore command is available.
+    Verifies that 'openspec' is installed, then scaffolds a new project
+    directory populated from an embedded template set, initializes a git
+    repository, and runs 'openspec init' so Claude Code's /opsx:explore
+    command is available.
+
+    The openspec check runs before anything is written, so a missing
+    dependency leaves no half-created directory behind.
 
     With no positional arguments and a terminal on stdin, an interactive
     Bubble Tea wizard collects the required values.
 
     With positional arguments, viber runs non-interactively:
-      viber init <name>          → dir defaults to ./<name>
-      viber init <name> <dir>    → fully specified
+      viber init <name>          -> dir defaults to ./<name>
+      viber init <name> <dir>    -> fully specified
 
-    Flags can also supply values (useful in CI): --name, --module, --desc,
-    --remote, --from, --force. --no-tui forces non-interactive mode even
-    on a terminal.
+    Flags can also supply values (useful in CI): --name, --desc, --remote,
+    --from, --force. --no-tui forces non-interactive mode even on a terminal.
 
 EXAMPLES
     Interactive wizard:
@@ -61,7 +64,6 @@ EXAMPLES
     Fully flagged (CI):
         viber init --no-tui \
             --name=myproj \
-            --module=github.com/me/myproj \
             --desc="a spec-driven side project"
 
     Overwrite an existing directory:
@@ -75,11 +77,10 @@ EXIT STATUS
     1    runtime error (openspec missing, network, I/O)
     2    usage error (missing required values in non-interactive mode)
 `,
-		Args: cobra.MaximumNArgs(2),
+		Args: usageArgs(cobra.MaximumNArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			seed := wizard.Answers{
 				Name:        name,
-				Module:      module,
 				Description: desc,
 				Remote:      remote,
 				From:        from,
@@ -99,7 +100,6 @@ EXIT STATUS
 	}
 	f := cmd.Flags()
 	f.StringVar(&name, "name", "", "project name (required in --no-tui)")
-	f.StringVar(&module, "module", "", "module path, e.g. github.com/you/name")
 	f.StringVar(&desc, "desc", "", "one-line description (shown in README/CLAUDE.md)")
 	f.StringVar(&remote, "remote", "", "git remote to add as 'origin' (optional)")
 	f.StringVar(&from, "from", "", "fetch templates from GitHub: owner/repo[@ref]")
@@ -114,19 +114,9 @@ func runInit(cmd *cobra.Command, seed wizard.Answers, noTUI bool) error {
 	canSkip := noTUI || haveAll
 	interactive := !canSkip && tty.IsInteractive(os.Stdin)
 
-	var ans wizard.Answers
-	if interactive {
-		got, err := wizard.Run(ctx, seed)
-		if err != nil {
-			return err
-		}
-		ans = got
-	} else {
-		if seed.Name == "" || seed.Dir == "" {
-			return UsageError(errors.New("name and destination directory are required in non-interactive mode (provide as positional args or via --name and a dir)"))
-		}
-		ans = seed
-		ans.Dir = filepath.Clean(ans.Dir)
+	ans, err := resolveAnswers(ctx, cmd, seed, interactive)
+	if err != nil {
+		return err
 	}
 
 	if err := checkDest(ans.Dir, ans.Force); err != nil {
@@ -138,19 +128,15 @@ func runInit(cmd *cobra.Command, seed wizard.Answers, noTUI bool) error {
 		return err
 	}
 
-	data := templates.Data{
-		Name:        ans.Name,
-		Module:      ans.Module,
-		Description: ans.Description,
-		Remote:      ans.Remote,
-		Year:        time.Now().Year(),
-	}
+	data := templates.Data{Name: ans.Name, Description: ans.Description}
 
+	// VerifyOpenspec has no side effects and must stay first: every step after
+	// it writes to disk, so failing later would strand a half-scaffolded dir.
 	stepList := []steps.Step{
+		steps.VerifyOpenspec(),
 		steps.Mkdir(ans.Dir),
 		steps.GitInit(ans.Dir),
 		steps.RenderTemplates(src, ans.Dir, data, ans.Force),
-		steps.VerifyOpenspec(),
 	}
 
 	if interactive {
@@ -174,6 +160,21 @@ func runInit(cmd *cobra.Command, seed wizard.Answers, noTUI bool) error {
 
 	printNextSteps(cmd.OutOrStdout(), ans.Dir)
 	return nil
+}
+
+// resolveAnswers fills in whatever the caller did not supply, either by running
+// the wizard or by rejecting an incomplete non-interactive invocation.
+func resolveAnswers(ctx context.Context, cmd *cobra.Command, seed wizard.Answers, interactive bool) (wizard.Answers, error) {
+	if interactive {
+		return wizard.Run(ctx, seed)
+	}
+	if seed.Name == "" || seed.Dir == "" {
+		return wizard.Answers{}, UsageError(cmd, errors.New(
+			"name and destination directory are required in non-interactive mode "+
+				"(provide as positional args or via --name and a dir)"))
+	}
+	seed.Dir = filepath.Clean(seed.Dir)
+	return seed, nil
 }
 
 func checkDest(dir string, force bool) error {
