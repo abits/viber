@@ -1,3 +1,4 @@
+// Command viber scaffolds a vibe-coding project wired for Claude Code + OpenSpec.
 package main
 
 import (

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -54,13 +55,8 @@ func drain(ch <-chan Msg) []string {
 
 func assertEq(t *testing.T, got, want []string) {
 	t.Helper()
-	if len(got) != len(want) {
-		t.Fatalf("len got=%d want=%d\n  got=%v\n  want=%v", len(got), len(want), got, want)
-	}
-	for i := range got {
-		if got[i] != want[i] {
-			t.Errorf("msg[%d]=%q want %q", i, got[i], want[i])
-		}
+	if !slices.Equal(got, want) {
+		t.Fatalf("got=%v want=%v", got, want)
 	}
 }
 

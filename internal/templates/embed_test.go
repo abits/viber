@@ -47,9 +47,8 @@ func TestParseFrom(t *testing.T) {
 	}
 }
 
-// TestEmbeddedTemplatesRender executes the real embedded template set. It turns
-// a typo like {{.Nmae}} from a runtime failure in a user's terminal into a
-// compile-time-ish failure here.
+// TestEmbeddedTemplatesRender executes the real embedded template set so a
+// mistyped template field fails here instead of in a user's terminal.
 func TestEmbeddedTemplatesRender(t *testing.T) {
 	src, err := Default()
 	if err != nil {
