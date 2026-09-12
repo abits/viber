@@ -4,6 +4,8 @@ description: Stage current changes, create a well-crafted commit, push the branc
 disable-model-invocation: true
 ---
 
+Apply the rules in `.claude/rules/git-hygiene.md` and `.claude/rules/pre-commit-checklist.md` throughout. They govern branch policy, commit message shape, and what must be true before staging.
+
 Run the full stage → commit → push → PR flow in one pass.
 
 1. Inspect state in parallel: `git status`, `git diff` (staged + unstaged), `git log -5 --oneline` (to match commit style).
