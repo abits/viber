@@ -18,42 +18,8 @@ func newUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update",
 		Short: "Download the latest release and overwrite the installed binary.",
-		Long: `NAME
-    viber update - download the latest release and overwrite the installed binary
-
-SYNOPSIS
-    viber update [--repo <owner/name>] [--dest <path>]
-
-DESCRIPTION
-    Queries the latest GitHub release for owner/repo (default: abits/viber),
-    downloads the archive matching the current OS/architecture, extracts the
-    'viber' binary, and atomically writes it to <dest> (default:
-    $HOME/bin/viber). File mode is set to 0755.
-
-    Windows is not supported in this version; use 'go install' or 'make install'
-    on Windows.
-
-EXAMPLES
-    Update the default install:
-        viber update
-
-    Update from a fork:
-        viber update --repo myorg/viber
-
-    Install into a custom path:
-        viber update --dest /usr/local/bin/viber
-
-ENVIRONMENT
-    GITHUB_TOKEN
-        Optional. Sent as a bearer token when calling the GitHub API and when
-        downloading release assets. Useful for private repos or when hitting
-        anonymous rate limits.
-
-EXIT STATUS
-    0    success
-    1    runtime error (network, extraction, filesystem)
-    2    usage error (bad --repo)
-`,
+		// text lives in docs/update.txt
+		Long: updateLong,
 		Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if runtime.GOOS == "windows" {
