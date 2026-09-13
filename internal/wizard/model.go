@@ -44,8 +44,10 @@ func (m *Model) primeInput() {
 	m.err = nil
 }
 
+// Init implements tea.Model.
 func (m Model) Init() tea.Cmd { return textinput.Blink }
 
+// Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
@@ -84,6 +86,7 @@ var (
 	errStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 )
 
+// View implements tea.Model.
 func (m Model) View() string {
 	if m.done || m.cancelled {
 		return ""

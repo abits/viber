@@ -1,3 +1,4 @@
+// Package openspec invokes the OpenSpec CLI used by `viber init`.
 package openspec
 
 import (
@@ -8,10 +9,13 @@ import (
 	"os/exec"
 )
 
+// ErrNotInstalled is returned by Verify when the openspec binary is not on PATH.
 var ErrNotInstalled = errors.New("openspec not installed; install with: npm install -g @fission-ai/openspec")
 
 var execCommand = exec.CommandContext
 
+// Verify runs `openspec --version`. It returns ErrNotInstalled when the
+// binary is missing from PATH.
 func Verify(ctx context.Context) error {
 	cmd := execCommand(ctx, "openspec", "--version")
 	if err := cmd.Run(); err != nil {
@@ -24,6 +28,7 @@ func Verify(ctx context.Context) error {
 	return nil
 }
 
+// Init runs `openspec init` in dir, inheriting stdin, stdout, and stderr.
 func Init(ctx context.Context, dir string) error {
 	cmd := execCommand(ctx, "openspec", "init")
 	cmd.Dir = dir

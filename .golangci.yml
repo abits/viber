@@ -2,6 +2,13 @@ version: "2"
 
 linters:
   default: standard
+  enable:
+    - revive
+    - godot
+    - errorlint
+    - bodyclose
+    - gosec
+    - misspell
   settings:
     errcheck:
       exclude-functions:
@@ -9,3 +16,10 @@ linters:
         - fmt.Fprintf
         - fmt.Fprintln
         - (io.Closer).Close
+    gosec:
+      excludes:
+        - G204 # exec.Command with user paths; the binary name is always fixed
+        - G301 # 0755 dirs are the intended scaffold/install mode
+        - G304 # test helpers read temp paths
+        - G306 # 0644 files are the intended scaffold mode
+        - G115 # raw tar mode is truncated to permission bits (0o777) so any overflow is intentional.

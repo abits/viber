@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -15,6 +16,8 @@ import (
 
 var httpClient = http.DefaultClient
 
+// Fetch downloads a GitHub repository tarball and returns it as an fs.FS
+// with the top-level directory stripped.
 func Fetch(ctx context.Context, owner, repo, ref string) (fs.FS, error) {
 	url := fmt.Sprintf("https://codeload.github.com/%s/%s/tar.gz/%s", owner, repo, ref)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -45,7 +48,7 @@ func unpackTarGz(r io.Reader) (fs.FS, error) {
 	m := fstest.MapFS{}
 	for {
 		hdr, err := tr.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
