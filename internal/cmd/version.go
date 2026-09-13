@@ -6,15 +6,8 @@ func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Print the viber version.",
-		Long: `NAME
-    viber version - print viber's version, commit, and build date
-
-SYNOPSIS
-    viber version
-
-DESCRIPTION
-    Prints the same string as 'viber --version'.
-`,
+		// text lives in docs/version.txt
+		Long: versionLong,
 		Args: usageArgs(cobra.NoArgs),
 		Run: func(cmd *cobra.Command, _ []string) {
 			cmd.Println(cmd.Root().Version)

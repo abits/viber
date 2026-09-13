@@ -108,7 +108,8 @@ func RunSpinner(ctx context.Context, steps []Step) error {
 	// the background lets it observe cancellation and shut down cleanly.
 	defer func() {
 		go func() {
-			for range ch {
+			for msg := range ch {
+				_ = msg
 			}
 		}()
 	}()

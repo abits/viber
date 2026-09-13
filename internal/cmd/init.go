@@ -26,57 +26,8 @@ func newInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init [name] [dir]",
 		Short: "Initialize and populate a new agentic coding project.",
-		Long: `NAME
-    viber init - initialize and populate a new agentic coding project
-
-SYNOPSIS
-    viber init [name] [dir] [flags]
-
-DESCRIPTION
-    Verifies that 'openspec' is installed, then scaffolds a new project
-    directory populated from an embedded template set, initializes a git
-    repository, and runs 'openspec init' so Claude Code's /opsx:explore
-    command is available.
-
-    The openspec check runs before anything is written, so a missing
-    dependency leaves no half-created directory behind.
-
-    With no positional arguments and a terminal on stdin, an interactive
-    Bubble Tea wizard collects the required values.
-
-    With positional arguments, viber runs non-interactively:
-      viber init <name>          -> dir defaults to ./<name>
-      viber init <name> <dir>    -> fully specified
-
-    Flags can also supply values (useful in CI): --name, --desc, --remote,
-    --from, --force. --no-tui forces non-interactive mode even on a terminal.
-
-EXAMPLES
-    Interactive wizard:
-        viber init
-
-    Name only (dir defaults to ./myproj):
-        viber init myproj
-
-    Name and directory:
-        viber init myproj ~/code/myproj
-
-    Fully flagged (CI):
-        viber init --no-tui \
-            --name=myproj \
-            --desc="a spec-driven side project"
-
-    Overwrite an existing directory:
-        viber init myproj --force
-
-    Fetch templates from a GitHub repo instead of the embedded set:
-        viber init myproj --from me/viber-templates@main
-
-EXIT STATUS
-    0    success
-    1    runtime error (openspec missing, network, I/O)
-    2    usage error (missing required values in non-interactive mode)
-`,
+		// text lives in docs/init.txt
+		Long: initLong,
 		Args: usageArgs(cobra.MaximumNArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			seed := wizard.Answers{

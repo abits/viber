@@ -1,3 +1,4 @@
+// Package updater downloads GitHub release assets and installs them atomically.
 package updater
 
 import (
@@ -5,6 +6,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,16 +18,19 @@ import (
 
 const releaseAPI = "https://api.github.com/repos/%s/%s/releases/latest"
 
+// Release is a GitHub release as returned by the latest-release API.
 type Release struct {
 	TagName string  `json:"tag_name"`
 	Assets  []Asset `json:"assets"`
 }
 
+// Asset is a downloadable file attached to a Release.
 type Asset struct {
 	Name string `json:"name"`
 	URL  string `json:"browser_download_url"`
 }
 
+// Latest fetches the latest GitHub release for owner/repo.
 func Latest(ctx context.Context, owner, repo string) (*Release, error) {
 	url := fmt.Sprintf(releaseAPI, owner, repo)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -51,7 +56,14 @@ func Latest(ctx context.Context, owner, repo string) (*Release, error) {
 	return &r, nil
 }
 
+// Install downloads the release asset matching the current GOOS/GOARCH,
+// extracts `binary` from it, and replaces `dest` atomically (0755). It
+// returns the installed tag name. Windows archives are .zip and are not
+// supported.
 func Install(ctx context.Context, rel *Release, binary, dest string) (string, error) {
+	if runtime.GOOS == "windows" {
+		return "", errors.New("updater.Install: windows archives (.zip) are not supported")
+	}
 	ver := strings.TrimPrefix(rel.TagName, "v")
 	wantPrefix := fmt.Sprintf("%s_%s_%s_%s", binary, ver, runtime.GOOS, runtime.GOARCH)
 	var chosen *Asset
@@ -91,6 +103,8 @@ func Install(ctx context.Context, rel *Release, binary, dest string) (string, er
 	return rel.TagName, nil
 }
 
+// ExtractBinary reads a gzip-compressed tar archive from r and returns the
+// contents of the regular file whose base name equals name.
 func ExtractBinary(r io.Reader, name string) ([]byte, error) {
 	gz, err := gzip.NewReader(r)
 	if err != nil {
@@ -100,7 +114,7 @@ func ExtractBinary(r io.Reader, name string) ([]byte, error) {
 	tr := tar.NewReader(gz)
 	for {
 		hdr, err := tr.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -140,6 +154,7 @@ func writeAtomic(dest string, body []byte, mode os.FileMode) error {
 	return os.Rename(tmpName, dest)
 }
 
+// DefaultDest returns $HOME/bin/<binary>, the install path used by `make install`.
 func DefaultDest(binary string) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
