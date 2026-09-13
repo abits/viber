@@ -1,0 +1,8 @@
+NAME
+    viber version - print viber's version, commit, and build date
+
+SYNOPSIS
+    viber version
+
+DESCRIPTION
+    Prints the same string as 'viber --version'.
