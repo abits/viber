@@ -56,12 +56,12 @@ EXIT STATUS
 `,
 		Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if runtime.GOOS == "windows" {
-				return fmt.Errorf("update is not supported on Windows in this version")
-			}
 			owner, repo, err := splitRepoSpec(repoSpec)
 			if err != nil {
 				return UsageError(cmd, err)
+			}
+			if runtime.GOOS == "windows" {
+				return fmt.Errorf("update is not supported on Windows in this version")
 			}
 			if dest == "" {
 				d, err := updater.DefaultDest("viber")
