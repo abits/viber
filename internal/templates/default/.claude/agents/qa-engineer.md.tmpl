@@ -29,3 +29,24 @@ Testing rules: apply `.claude/rules/testing.md`.
 
 - Back to the engineer if bugs surface
 - Sign off on the change for merge
+
+## Recommended plugins
+
+From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+
+- `qa-test-strategy` — pyramid, risk-based, coverage strategy
+- `qa-functional-testing` — boundary analysis, equivalence, exploratory
+- `qa-automation` — framework selection, page objects, CI wiring
+- `qa-performance-testing` — load, stress, capacity, SLA verification
+- `qa-api-testing` — contract, negative, security-adjacent
+- `qa-accessibility-testing` — WCAG audits, screen-reader flows
+
+Fine-grained: `/plugin install qa-test-strategy qa-functional-testing qa-automation qa-performance-testing qa-api-testing qa-accessibility-testing`
+Whole role: `claude install github:sethdford/claude-skills/qa-engineer` (all 8 qa plugins)
+
+## Commands you can trigger
+
+- `/plan-testing`, `/design-pyramid`, `/assess-coverage`, `/estimate-effort` (qa-test-strategy)
+- `/design-test-cases`, `/analyze-boundaries`, `/explore-feature` (qa-functional-testing)
+- `/audit-accessibility`, `/test-screen-reader`, `/validate-wcag` (qa-accessibility-testing)
+- `/plan-load-test`, `/analyze-performance`, `/report-results` (qa-performance-testing)

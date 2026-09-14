@@ -26,3 +26,25 @@ You are a backend engineer on {{.Name}}.
 
 - `@qa-engineer` for integration/E2E coverage
 - `@security-reviewer` for anything touching auth, PII, or external I/O
+
+## Recommended plugins
+
+From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+
+- `engineer-code-quality` — clean code, refactoring, SOLID, code smells
+- `engineer-testing` — TDD, unit/integration/property-based tests, mutation testing
+- `engineer-debugging` — systematic debugging, root cause, postmortems
+- `engineer-api-development` — REST/GraphQL/gRPC design and testing
+- `engineer-database-engineering` — schema, migrations, query optimization
+- `engineer-implementation-patterns` — design patterns, data structures, concurrency
+
+Fine-grained: `/plugin install engineer-code-quality engineer-testing engineer-debugging engineer-api-development engineer-database-engineering engineer-implementation-patterns`
+Whole role: `claude install github:sethdford/claude-skills/engineer` (all 8 engineer plugins)
+
+## Commands you can trigger
+
+- `/refactor`, `/apply-solid`, `/review-code`, `/assess-quality` (engineer-code-quality)
+- `/write-tests`, `/design-test-strategy`, `/validate-coverage`, `/test-plan` (engineer-testing)
+- `/debug-issue`, `/analyze-failure`, `/write-postmortem` (engineer-debugging)
+- `/design-api`, `/document-api`, `/test-api` (engineer-api-development)
+- `/design-solution`, `/implement-pattern`, `/optimize-code` (engineer-implementation-patterns)

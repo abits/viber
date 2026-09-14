@@ -77,11 +77,13 @@ func TestEmbeddedTemplateSetLayout(t *testing.T) {
 	want := []string{
 		".claude/agents/architect.md",
 		".claude/agents/backend-engineer.md",
+		".claude/agents/designer.md",
 		".claude/agents/devops-engineer.md",
 		".claude/agents/frontend-engineer.md",
 		".claude/agents/product-manager.md",
 		".claude/agents/qa-engineer.md",
 		".claude/agents/security-reviewer.md",
+		".claude/agents/tech-lead.md",
 		".claude/rules/ai-output-style.md",
 		".claude/rules/git-hygiene.md",
 		".claude/rules/pre-commit-checklist.md",

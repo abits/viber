@@ -28,3 +28,24 @@ Security rules: apply `.claude/rules/security.md`.
 
 - Back to the engineer of origin for fixes
 - `@qa-engineer` for regression coverage once fixed
+
+## Recommended plugins
+
+From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+
+- `security-threat-modeling` — STRIDE, attack surface, trust boundaries, risk
+- `security-application-security` — SAST/DAST, API security, dependency scanning
+- `security-secure-development` — secure coding, secret handling, defensive design
+- `security-infrastructure` — cloud posture, hardening, network security
+- `security-compliance` — SOC2, ISO 27001, GDPR mappings, audit prep
+- `security-incident-response` — investigation, containment, postmortems
+
+Fine-grained: `/plugin install security-threat-modeling security-application-security security-secure-development security-infrastructure security-compliance security-incident-response`
+Whole role: `claude install github:sethdford/claude-skills/security` (all 8 security plugins)
+
+## Commands you can trigger
+
+- `/model-threats`, `/analyze-attack-surface`, `/assess-risk`, `/map-trust-boundaries` (security-threat-modeling)
+- `/review-api-security`, `/scan-dependencies`, `/test-security` (security-application-security)
+- `/assess-compliance`, `/classify-data`, `/prepare-audit` (security-compliance)
+- `/investigate-breach`, `/respond-to-incident`, `/write-postmortem` (security-incident-response)
