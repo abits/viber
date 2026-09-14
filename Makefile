@@ -10,7 +10,7 @@ LDFLAGS := -s -w \
 	-X main.date=$(DATE)
 
 .PHONY: all build install test lint fmt tidy man completions release \
-        bump-patch bump-minor bump-major _bump
+        bootstrap-agents bump-patch bump-minor bump-major _bump
 
 all: build
 
@@ -47,6 +47,20 @@ completions: build
 
 release:
 	goreleaser release --clean
+
+# Render the scaffolded agent team into viber's own .claude/agents/ so Claude
+# working on viber can invoke the same roles that scaffolded projects use.
+# Regenerable — rerun after editing internal/templates/default/.claude/agents/.
+bootstrap-agents: build
+	@tmp=$$(mktemp -d) && dest="$$tmp/viber" && \
+	./bin/viber init viber "$$dest" --no-tui \
+		--desc="Scaffold a vibe-coding project wired for Claude Code + OpenSpec." \
+		>/dev/null && \
+	mkdir -p .claude/agents && \
+	cp -f "$$dest/.claude/agents/"*.md .claude/agents/ && \
+	cp -f "$$dest/AGENTS.md" AGENTS.md && \
+	rm -rf "$$tmp" && \
+	echo "wrote $$(ls .claude/agents/*.md | wc -l) agents + AGENTS.md"
 
 bump-patch:
 	@$(MAKE) --no-print-directory _bump PART=patch
