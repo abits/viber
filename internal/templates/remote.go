@@ -16,6 +16,8 @@ import (
 
 var httpClient = http.DefaultClient
 
+const maxTemplateSetSize int64 = 8 << 20
+
 // Fetch downloads a GitHub repository tarball and returns it as an fs.FS
 // with the top-level directory stripped.
 func Fetch(ctx context.Context, owner, repo, ref string) (fs.FS, error) {
@@ -46,6 +48,7 @@ func unpackTarGz(r io.Reader) (fs.FS, error) {
 	defer func() { _ = gz.Close() }()
 	tr := tar.NewReader(gz)
 	m := fstest.MapFS{}
+	var totalSize int64
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
@@ -57,15 +60,30 @@ func unpackTarGz(r io.Reader) (fs.FS, error) {
 		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
+		if !fs.ValidPath(hdr.Name) || strings.ContainsRune(hdr.Name, '\\') {
+			return nil, fmt.Errorf("template set contains an unsafe path %q", hdr.Name)
+		}
 		parts := strings.SplitN(hdr.Name, "/", 2)
 		if len(parts) < 2 || parts[1] == "" {
 			continue
 		}
-		buf, err := io.ReadAll(tr)
+		name := parts[1]
+		if !fs.ValidPath(name) || strings.ContainsRune(name, '\\') {
+			return nil, fmt.Errorf("template set contains an unsafe path %q", hdr.Name)
+		}
+		remaining := maxTemplateSetSize - totalSize
+		if hdr.Size > remaining {
+			return nil, fmt.Errorf("template set exceeds maximum uncompressed size of %d bytes", maxTemplateSetSize)
+		}
+		buf, err := io.ReadAll(io.LimitReader(tr, remaining+1))
 		if err != nil {
 			return nil, fmt.Errorf("read %s: %w", hdr.Name, err)
 		}
-		m[parts[1]] = &fstest.MapFile{Data: buf, Mode: fs.FileMode(hdr.Mode) & 0o777}
+		totalSize += int64(len(buf))
+		if totalSize > maxTemplateSetSize {
+			return nil, fmt.Errorf("template set exceeds maximum uncompressed size of %d bytes", maxTemplateSetSize)
+		}
+		m[name] = &fstest.MapFile{Data: buf, Mode: fs.FileMode(hdr.Mode) & 0o777}
 	}
 	return m, nil
 }
