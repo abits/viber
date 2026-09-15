@@ -228,7 +228,7 @@ func TestLatest(t *testing.T) {
 	})
 
 	t.Run("wraps a non-200 status", func(t *testing.T) {
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "nope", http.StatusNotFound)
 		}))
 		defer srv.Close()
@@ -247,7 +247,7 @@ func TestInstall(t *testing.T) {
 		archive := tarGz(t, map[string]string{
 			"viber_1.2.3_" + runtime.GOOS + "_" + runtime.GOARCH + "/viber": "compiled-binary-bytes",
 		})
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			_, _ = w.Write(archive.Bytes())
 		}))
 		defer srv.Close()
@@ -285,7 +285,7 @@ func TestInstall(t *testing.T) {
 
 	t.Run("wraps a non-200 asset download", func(t *testing.T) {
 		assetName := fmt.Sprintf("viber_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "gone", http.StatusGone)
 		}))
 		defer srv.Close()

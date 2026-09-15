@@ -69,25 +69,25 @@ func UntarGz(r io.Reader, opts Options) (fs.FS, error) {
 	return m, nil
 }
 
-// readEntry reads the current tar entry's content, enforcing max (the
-// running total across the whole archive so far) when max is positive. It
+// readEntry reads the current tar entry's content, enforcing limit (the
+// running total across the whole archive so far) when limit is positive. It
 // returns the new running total so the caller can thread it into the next
 // call. The limit is enforced against bytes actually read, not the entry's
 // declared Size, since a tar header's Size is attacker-controlled and
 // cannot be trusted.
-func readEntry(tr *tar.Reader, max, total int64) (buf []byte, newTotal int64, err error) {
-	if max <= 0 {
+func readEntry(tr *tar.Reader, limit, total int64) (buf []byte, newTotal int64, err error) {
+	if limit <= 0 {
 		buf, err = io.ReadAll(tr)
 		return buf, total + int64(len(buf)), err
 	}
-	remaining := max - total
+	remaining := limit - total
 	buf, err = io.ReadAll(io.LimitReader(tr, remaining+1))
 	if err != nil {
 		return nil, total, err
 	}
 	newTotal = total + int64(len(buf))
-	if newTotal > max {
-		return nil, newTotal, fmt.Errorf("archive exceeds maximum uncompressed size of %d bytes", max)
+	if newTotal > limit {
+		return nil, newTotal, fmt.Errorf("archive exceeds maximum uncompressed size of %d bytes", limit)
 	}
 	return buf, newTotal, nil
 }
