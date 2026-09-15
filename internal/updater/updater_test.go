@@ -242,6 +242,11 @@ func TestLatest(t *testing.T) {
 }
 
 func TestInstall(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// Install refuses unconditionally on Windows before doing anything
+		// these subtests exercise; see TestInstallRefusesWindows.
+		t.Skip("Install refuses on windows before reaching any of this")
+	}
 	t.Run("downloads, extracts, and atomically installs the binary", func(t *testing.T) {
 		assetName := fmt.Sprintf("viber_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 		archive := tarGz(t, map[string]string{

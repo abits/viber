@@ -22,12 +22,15 @@ func newUpdateCmd() *cobra.Command {
 		Long: updateLong,
 		Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if runtime.GOOS == "windows" {
-				return fmt.Errorf("update is not supported on Windows in this version")
-			}
+			// Validate input before checking platform support, so a bad
+			// --repo is still reported as a usage error (exit 2) on Windows
+			// instead of being masked by the runtime error below.
 			owner, repo, err := splitRepoSpec(repoSpec)
 			if err != nil {
 				return UsageError(cmd, err)
+			}
+			if runtime.GOOS == "windows" {
+				return fmt.Errorf("update is not supported on Windows in this version")
 			}
 			if dest == "" {
 				d, err := updater.DefaultDest("viber")
