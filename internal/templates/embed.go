@@ -8,13 +8,14 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
-	"strings"
+
+	"github.com/abits/viber/internal/ghfetch"
 )
 
 //go:embed all:default
 var defaultFS embed.FS
 
-// defaultRef is the git ref used when --from names no explicit one.
+// defaultRef is the git ref used when --from names none via "@ref".
 const defaultRef = "main"
 
 // Default returns the template set embedded in the binary.
@@ -36,21 +37,16 @@ func Resolve(ctx context.Context, from string) (fs.FS, error) {
 }
 
 // parseFrom splits a --from value of the form owner/repo[@ref]. The ref
-// defaults to defaultRef; a trailing "@" with nothing after it is an error
-// rather than an empty ref, which would build an unfetchable URL.
+// defaults to defaultRef when omitted; a trailing "@" with nothing after it
+// is an error rather than an empty ref, which would build an unfetchable
+// URL.
 func parseFrom(s string) (owner, repo, ref string, err error) {
-	const want = "want owner/repo[@ref]"
-	ref = defaultRef
-	if i := strings.Index(s, "@"); i >= 0 {
-		ref = s[i+1:]
-		s = s[:i]
-		if ref == "" {
-			return "", "", "", fmt.Errorf("invalid --from value %q: empty ref after '@'; %s", s+"@", want)
-		}
+	owner, repo, ref, err = ghfetch.ParseRepoSpec(s)
+	if err != nil {
+		return "", "", "", fmt.Errorf("invalid --from value: %w", err)
 	}
-	owner, repo, found := strings.Cut(s, "/")
-	if !found || owner == "" || repo == "" {
-		return "", "", "", fmt.Errorf("invalid --from value %q; %s", s, want)
+	if ref == "" {
+		ref = defaultRef
 	}
 	return owner, repo, ref, nil
 }

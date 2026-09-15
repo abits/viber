@@ -2,21 +2,28 @@
 package updater
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/abits/viber/internal/ghfetch"
 )
 
-const releaseAPI = "https://api.github.com/repos/%s/%s/releases/latest"
+// releaseAPI is the GitHub API endpoint for a repository's latest release.
+// A var, not a const, so tests can point it at an httptest.Server.
+var releaseAPI = "https://api.github.com/repos/%s/%s/releases/latest"
+
+// client issues the HTTP requests Latest and Install make. A package var so
+// tests can inject an httptest.Server's client.
+var client ghfetch.Client
 
 // Release is a GitHub release as returned by the latest-release API.
 type Release struct {
@@ -33,15 +40,12 @@ type Asset struct {
 // Latest fetches the latest GitHub release for owner/repo.
 func Latest(ctx context.Context, owner, repo string) (*Release, error) {
 	url := fmt.Sprintf(releaseAPI, owner, repo)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := client.NewRequest(ctx, url)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	if tok := os.Getenv("GITHUB_TOKEN"); tok != "" {
-		req.Header.Set("Authorization", "Bearer "+tok)
-	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +81,7 @@ func Install(ctx context.Context, rel *Release, binary, dest string) (string, er
 		return "", fmt.Errorf("no release asset matches %s in %s", wantPrefix, rel.TagName)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, chosen.URL, nil)
-	if err != nil {
-		return "", err
-	}
-	if tok := os.Getenv("GITHUB_TOKEN"); tok != "" {
-		req.Header.Set("Authorization", "Bearer "+tok)
-	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Get(ctx, chosen.URL)
 	if err != nil {
 		return "", err
 	}
@@ -106,28 +103,36 @@ func Install(ctx context.Context, rel *Release, binary, dest string) (string, er
 // ExtractBinary reads a gzip-compressed tar archive from r and returns the
 // contents of the regular file whose base name equals name.
 func ExtractBinary(r io.Reader, name string) ([]byte, error) {
-	gz, err := gzip.NewReader(r)
+	fsys, err := ghfetch.UntarGz(r, ghfetch.Options{})
 	if err != nil {
-		return nil, fmt.Errorf("gzip: %w", err)
+		return nil, err
 	}
-	defer func() { _ = gz.Close() }()
-	tr := tar.NewReader(gz)
-	for {
-		hdr, err := tr.Next()
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	var found []byte
+	walkErr := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return nil, err
+			// Only relevant when RejectUnsafePaths is off (as it is here):
+			// skip whatever this fs.FS implementation couldn't stat and
+			// keep looking, rather than letting one odd entry abort the
+			// search for the binary we actually want.
+			return nil
 		}
-		if hdr.Typeflag != tar.TypeReg {
-			continue
+		if d.IsDir() || filepath.Base(p) != name {
+			return nil
 		}
-		if filepath.Base(hdr.Name) == name {
-			return io.ReadAll(tr)
+		b, readErr := fs.ReadFile(fsys, p)
+		if readErr != nil {
+			return readErr
 		}
+		found = b
+		return fs.SkipAll
+	})
+	if walkErr != nil {
+		return nil, walkErr
 	}
-	return nil, fmt.Errorf("binary %q not found in archive", name)
+	if found == nil {
+		return nil, fmt.Errorf("binary %q not found in archive", name)
+	}
+	return found, nil
 }
 
 func writeAtomic(dest string, body []byte, mode os.FileMode) error {

@@ -4,12 +4,34 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/abits/viber/internal/ghfetch"
 )
+
+// useTestServer points both the release-API endpoint and the HTTP client at
+// srv for the duration of the test, restoring both on cleanup. This is the
+// seam issue #2 asked for: Latest and Install previously had none, which is
+// why internal/updater sat at 0% coverage.
+func useTestServer(t *testing.T, srv *httptest.Server) {
+	t.Helper()
+	origAPI, origClient := releaseAPI, client
+	releaseAPI = srv.URL + "/repos/%s/%s/releases/latest"
+	client = ghfetch.Client{HTTP: srv.Client()}
+	t.Cleanup(func() {
+		releaseAPI = origAPI
+		client = origClient
+	})
+}
 
 func tarGz(t *testing.T, files map[string]string) *bytes.Buffer {
 	t.Helper()
@@ -74,6 +96,25 @@ func TestExtractBinary(t *testing.T) {
 			t.Fatal("want an error for a non-gzip stream")
 		}
 	})
+
+	t.Run("does not match an entry whose name traverses out of the archive", func(t *testing.T) {
+		// A tar entry named "../viber" has base name "viber" too, but
+		// fstest.MapFS (which UntarGz builds on) treats ".." as a directory
+		// element rather than a literal name and never exposes such an
+		// entry's content through the fs.FS interface. ExtractBinary must
+		// keep looking rather than error out, and must not find this one.
+		archive := tarGz(t, map[string]string{
+			"../viber":                      "evil",
+			"viber_1.0.0_linux_amd64/viber": "good",
+		})
+		got, err := ExtractBinary(archive, "viber")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != "good" {
+			t.Errorf("got %q, want %q (the traversal entry must not win)", got, "good")
+		}
+	})
 }
 
 func TestWriteAtomic(t *testing.T) {
@@ -131,6 +172,140 @@ func assertFile(t *testing.T, path, wantBody string, wantMode os.FileMode) {
 	}
 	if info.Mode().Perm() != wantMode {
 		t.Errorf("mode = %v, want %v", info.Mode().Perm(), wantMode)
+	}
+}
+
+func TestLatest(t *testing.T) {
+	t.Run("returns the decoded release", func(t *testing.T) {
+		var gotAccept, gotPath string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotAccept = r.Header.Get("Accept")
+			gotPath = r.URL.Path
+			_ = json.NewEncoder(w).Encode(Release{
+				TagName: "v1.2.3",
+				Assets:  []Asset{{Name: "viber_1.2.3_linux_amd64.tar.gz", URL: "http://example.invalid/asset"}},
+			})
+		}))
+		defer srv.Close()
+		useTestServer(t, srv)
+
+		rel, err := Latest(context.Background(), "abits", "viber")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rel.TagName != "v1.2.3" {
+			t.Errorf("TagName = %q, want %q", rel.TagName, "v1.2.3")
+		}
+		if len(rel.Assets) != 1 || rel.Assets[0].Name != "viber_1.2.3_linux_amd64.tar.gz" {
+			t.Errorf("Assets = %+v", rel.Assets)
+		}
+		if want := "application/vnd.github+json"; gotAccept != want {
+			t.Errorf("Accept header = %q, want %q", gotAccept, want)
+		}
+		if want := "/repos/abits/viber/releases/latest"; gotPath != want {
+			t.Errorf("request path = %q, want %q", gotPath, want)
+		}
+	})
+
+	t.Run("sends the configured bearer token", func(t *testing.T) {
+		var gotAuth string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotAuth = r.Header.Get("Authorization")
+			_ = json.NewEncoder(w).Encode(Release{TagName: "v1.0.0"})
+		}))
+		defer srv.Close()
+		useTestServer(t, srv)
+		orig := client
+		client.Token = "test-token"
+		defer func() { client = orig }()
+
+		if _, err := Latest(context.Background(), "abits", "viber"); err != nil {
+			t.Fatal(err)
+		}
+		if want := "Bearer test-token"; gotAuth != want {
+			t.Errorf("Authorization = %q, want %q", gotAuth, want)
+		}
+	})
+
+	t.Run("wraps a non-200 status", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "nope", http.StatusNotFound)
+		}))
+		defer srv.Close()
+		useTestServer(t, srv)
+
+		_, err := Latest(context.Background(), "abits", "viber")
+		if err == nil || !strings.Contains(err.Error(), "404") {
+			t.Fatalf("err = %v, want it to mention 404", err)
+		}
+	})
+}
+
+func TestInstall(t *testing.T) {
+	t.Run("downloads, extracts, and atomically installs the binary", func(t *testing.T) {
+		assetName := fmt.Sprintf("viber_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+		archive := tarGz(t, map[string]string{
+			"viber_1.2.3_" + runtime.GOOS + "_" + runtime.GOARCH + "/viber": "compiled-binary-bytes",
+		})
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write(archive.Bytes())
+		}))
+		defer srv.Close()
+		useTestServer(t, srv)
+
+		rel := &Release{
+			TagName: "v1.2.3",
+			Assets:  []Asset{{Name: assetName, URL: srv.URL}},
+		}
+		dest := filepath.Join(t.TempDir(), "viber")
+
+		gotVer, err := Install(context.Background(), rel, "viber", dest)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if gotVer != "v1.2.3" {
+			t.Errorf("version = %q, want %q", gotVer, "v1.2.3")
+		}
+		got, err := os.ReadFile(dest)
+		if err != nil || string(got) != "compiled-binary-bytes" {
+			t.Fatalf("installed content = %q, %v", got, err)
+		}
+	})
+
+	t.Run("errors when no asset matches the current platform", func(t *testing.T) {
+		rel := &Release{
+			TagName: "v1.2.3",
+			Assets:  []Asset{{Name: "viber_1.2.3_plan9_amd64.tar.gz"}},
+		}
+		_, err := Install(context.Background(), rel, "viber", filepath.Join(t.TempDir(), "viber"))
+		if err == nil || !strings.Contains(err.Error(), "no release asset matches") {
+			t.Fatalf("err = %v, want a no-matching-asset error", err)
+		}
+	})
+
+	t.Run("wraps a non-200 asset download", func(t *testing.T) {
+		assetName := fmt.Sprintf("viber_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "gone", http.StatusGone)
+		}))
+		defer srv.Close()
+		useTestServer(t, srv)
+
+		rel := &Release{TagName: "v1.2.3", Assets: []Asset{{Name: assetName, URL: srv.URL}}}
+		_, err := Install(context.Background(), rel, "viber", filepath.Join(t.TempDir(), "viber"))
+		if err == nil || !strings.Contains(err.Error(), "410") {
+			t.Fatalf("err = %v, want it to mention 410", err)
+		}
+	})
+}
+
+func TestInstallRefusesWindows(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("this guard only triggers on windows")
+	}
+	_, err := Install(context.Background(), &Release{TagName: "v1.0.0"}, "viber", filepath.Join(t.TempDir(), "viber"))
+	if err == nil {
+		t.Fatal("want an error on windows")
 	}
 }
 

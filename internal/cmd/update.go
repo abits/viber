@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/abits/viber/internal/ghfetch"
 	"github.com/abits/viber/internal/updater"
 )
 
@@ -57,11 +57,13 @@ func newUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-// splitRepoSpec parses an "owner/name" GitHub repository reference.
+// splitRepoSpec parses an "owner/name" GitHub repository reference. --repo
+// has no concept of a ref, so any "@ref" suffix ghfetch.ParseRepoSpec finds
+// is simply discarded.
 func splitRepoSpec(s string) (owner, repo string, err error) {
-	parts := strings.SplitN(s, "/", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+	owner, repo, _, err = ghfetch.ParseRepoSpec(s)
+	if err != nil {
 		return "", "", fmt.Errorf("--repo must be owner/name (got %q)", s)
 	}
-	return parts[0], parts[1], nil
+	return owner, repo, nil
 }
