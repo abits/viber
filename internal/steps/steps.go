@@ -3,15 +3,11 @@ package steps
 import (
 	"context"
 	"io/fs"
-	"os"
 
 	"github.com/abits/viber/internal/gitrepo"
 	"github.com/abits/viber/internal/openspec"
 	"github.com/abits/viber/internal/templates"
 )
-
-// dirMode is the permission bit set used for every directory viber creates.
-const dirMode = 0o755
 
 type stepFn struct {
 	name string
@@ -31,17 +27,9 @@ func VerifyOpenspec() Step {
 	}
 }
 
-// Mkdir creates the destination directory, including any missing parents.
-func Mkdir(dir string) Step {
-	return stepFn{
-		name: "create project directory",
-		run: func(context.Context) error {
-			return os.MkdirAll(dir, dirMode)
-		},
-	}
-}
-
 // GitInit initializes a git repository in dir unless one is already there.
+// dir must already exist; RenderTemplates creates it, so GitInit belongs
+// after RenderTemplates in a scaffold run.
 func GitInit(dir string) Step {
 	return stepFn{
 		name: "initialize git repository",

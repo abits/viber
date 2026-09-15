@@ -34,29 +34,95 @@ const (
 )
 
 // Render expands every file in src into dst, stripping the ".tmpl" suffix and
-// executing those files as text/template against data. Plain files are copied
-// verbatim. Unless force is set, an existing destination file is an error.
+// executing those files as text/template against data. Plain files are
+// copied verbatim.
 //
-// Render is not atomic: a failure partway through leaves the files written so
-// far in place.
+// Render is atomic when dst does not yet exist: it renders into a temporary
+// directory next to dst (so the final rename can never cross a filesystem
+// boundary) and moves it into place only once every file has been written,
+// so a failure partway through - a broken template, a full disk - leaves no
+// trace at dst at all. When dst already exists (a --force re-run onto a
+// previous attempt, or any other caller-managed directory), Render cannot
+// offer that guarantee without deleting the caller's existing content
+// first, so it falls back to copying the rendered files into dst one by
+// one, with the same per-file overwrite rule Render always had: an existing
+// file is ErrExists unless force is set.
 func Render(src fs.FS, dst string, data Data, force bool) error {
+	parent := filepath.Dir(dst)
+	if err := os.MkdirAll(parent, dirMode); err != nil {
+		return err
+	}
+	tmp, err := os.MkdirTemp(parent, ".viber-render-*")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(tmp) }()
+
+	if err := renderAll(src, tmp, data); err != nil {
+		return err
+	}
+	return publish(tmp, dst, force)
+}
+
+// renderAll expands every entry of src into the already-created, empty
+// directory tmp.
+func renderAll(src fs.FS, tmp string, data Data) error {
 	return fs.WalkDir(src, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if p == "." {
-			return os.MkdirAll(dst, dirMode)
+			return nil
 		}
-		out := filepath.Join(dst, filepath.FromSlash(strings.TrimSuffix(p, ".tmpl")))
+		out := filepath.Join(tmp, filepath.FromSlash(strings.TrimSuffix(p, ".tmpl")))
+		if d.IsDir() {
+			return os.MkdirAll(out, dirMode)
+		}
+		return writeFile(src, p, out, data)
+	})
+}
+
+// publish moves a fully rendered tmp directory into dst: a single rename
+// when dst does not exist, or a file-by-file merge (see Render's doc
+// comment) when it does.
+func publish(tmp, dst string, force bool) error {
+	switch _, err := os.Lstat(dst); {
+	case errors.Is(err, os.ErrNotExist):
+		return os.Rename(tmp, dst)
+	case err != nil:
+		return err
+	default:
+		return mergeInto(tmp, dst, force)
+	}
+}
+
+// mergeInto copies every file under tmp into the corresponding path under
+// the already-existing dst, in the same layout Render always produced:
+// existing files are left alone and reported as ErrExists unless force is
+// set, in which case they're overwritten.
+func mergeInto(tmp, dst string, force bool) error {
+	tmpFS := os.DirFS(tmp)
+	return fs.WalkDir(tmpFS, ".", func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if p == "." {
+			return nil
+		}
+		out := filepath.Join(dst, filepath.FromSlash(p))
 		if d.IsDir() {
 			return os.MkdirAll(out, dirMode)
 		}
 		if !force {
-			if _, err := os.Stat(out); err == nil {
+			if _, err := os.Lstat(out); err == nil {
 				return fmt.Errorf("%w: %s", ErrExists, out)
 			}
 		}
-		return writeFile(src, p, out, data)
+		content, err := fs.ReadFile(tmpFS, p)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(out, content, fileMode)
 	})
 }
 

@@ -26,8 +26,11 @@ The dependency direction is `cmd -> steps -> {templates, gitrepo, openspec}`. Ke
 - **Exit codes**: `0` success, `1` runtime error, `2` usage error. `internal/cmd` is the single
   place that prints user-facing errors — commands and step runners return errors, they do not
   print them. Mark input errors with `UsageError(cmd, err)` so they exit 2 and show usage.
-- **Ordering in `runInit`**: side-effect-free checks (`steps.VerifyOpenspec`) come first. Anything
-  that fails after `Mkdir` leaves a half-scaffolded directory behind.
+- **Ordering in `runInit`**: side-effect-free checks (`steps.VerifyOpenspec`) come first, then
+  `RenderTemplates` (which creates the destination itself, atomically when it doesn't already
+  exist - see `templates.Render`), then `GitInit`. A render failure on a fresh scaffold now
+  leaves nothing behind; don't reorder `GitInit` before `RenderTemplates`, it requires the
+  directory to already exist.
 - **`templates.Data`**: every field must be referenced by at least one template.
   `TestEmbeddedTemplatesUseEveryDataField` enforces this — do not add a field "for later".
 - **Context**: `steps.Runner` checks `ctx.Err()` between steps, and both Bubble Tea programs are

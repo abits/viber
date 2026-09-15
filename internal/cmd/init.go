@@ -81,13 +81,15 @@ func runInit(cmd *cobra.Command, seed wizard.Answers, noTUI bool) error {
 
 	data := templates.Data{Name: ans.Name, Description: ans.Description}
 
-	// VerifyOpenspec has no side effects and must stay first: every step after
-	// it writes to disk, so failing later would strand a half-scaffolded dir.
+	// VerifyOpenspec has no side effects and must stay first. RenderTemplates
+	// creates ans.Dir itself (atomically, when it doesn't already exist - see
+	// templates.Render), so it must run before GitInit, which requires the
+	// directory to already be there; this ordering is what makes a failing
+	// render on a fresh scaffold leave nothing behind at all.
 	stepList := []steps.Step{
 		steps.VerifyOpenspec(),
-		steps.Mkdir(ans.Dir),
-		steps.GitInit(ans.Dir),
 		steps.RenderTemplates(src, ans.Dir, data, ans.Force),
+		steps.GitInit(ans.Dir),
 	}
 
 	if interactive {
