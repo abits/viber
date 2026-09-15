@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/abits/viber/internal/ghfetch"
 	"github.com/abits/viber/internal/updater"
 )
 
@@ -22,12 +22,15 @@ func newUpdateCmd() *cobra.Command {
 		Long: updateLong,
 		Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if runtime.GOOS == "windows" {
-				return fmt.Errorf("update is not supported on Windows in this version")
-			}
+			// Validate input before checking platform support, so a bad
+			// --repo is still reported as a usage error (exit 2) on Windows
+			// instead of being masked by the runtime error below.
 			owner, repo, err := splitRepoSpec(repoSpec)
 			if err != nil {
 				return UsageError(cmd, err)
+			}
+			if runtime.GOOS == "windows" {
+				return fmt.Errorf("update is not supported on Windows in this version")
 			}
 			if dest == "" {
 				d, err := updater.DefaultDest("viber")
@@ -57,11 +60,13 @@ func newUpdateCmd() *cobra.Command {
 	return cmd
 }
 
-// splitRepoSpec parses an "owner/name" GitHub repository reference.
+// splitRepoSpec parses an "owner/name" GitHub repository reference. --repo
+// has no concept of a ref, so any "@ref" suffix ghfetch.ParseRepoSpec finds
+// is simply discarded.
 func splitRepoSpec(s string) (owner, repo string, err error) {
-	parts := strings.SplitN(s, "/", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+	owner, repo, _, err = ghfetch.ParseRepoSpec(s)
+	if err != nil {
 		return "", "", fmt.Errorf("--repo must be owner/name (got %q)", s)
 	}
-	return parts[0], parts[1], nil
+	return owner, repo, nil
 }
