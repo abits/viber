@@ -81,7 +81,7 @@ Then in the new project:
 |---|---|
 | `viber init [name] [dir]` | Initialize and populate a new agentic coding project (interactive by default). |
 | `viber version` | Print version, commit, and build date. |
-| `viber update` | Download the latest GitHub release and overwrite `~/bin/viber` (Linux/macOS). |
+| `viber update` | Download the latest GitHub release, verify it against `checksums.txt`, and overwrite `~/bin/viber` (Linux/macOS). |
 | `viber completion {bash,zsh,fish,powershell}` | Emit a shell completion script. |
 | `viber help [command]` | Help for any command. |
 

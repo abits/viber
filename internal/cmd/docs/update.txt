@@ -6,9 +6,14 @@ SYNOPSIS
 
 DESCRIPTION
     Queries the latest GitHub release for owner/repo (default: abits/viber),
-    downloads the archive matching the current OS/architecture, extracts the
-    'viber' binary, and atomically writes it to <dest> (default:
-    $HOME/bin/viber). File mode is set to 0755.
+    downloads the archive matching the current OS/architecture, verifies it
+    against the release's checksums.txt (SHA-256), extracts the 'viber'
+    binary, and atomically writes it to <dest> (default: $HOME/bin/viber).
+    File mode is set to 0755.
+
+    A release that does not publish checksums.txt, or whose downloaded
+    archive does not match the digest checksums.txt lists for it, is
+    refused: nothing is written to <dest>.
 
     Windows is not supported in this version; use 'go install' or 'make install'
     on Windows.
@@ -31,5 +36,5 @@ ENVIRONMENT
 
 EXIT STATUS
     0    success
-    1    runtime error (network, extraction, filesystem)
+    1    runtime error (network, checksum verification, extraction, filesystem)
     2    usage error (bad --repo)

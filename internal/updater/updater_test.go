@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -54,6 +55,34 @@ func tarGz(t *testing.T, files map[string]string) *bytes.Buffer {
 		t.Fatal(err)
 	}
 	return &buf
+}
+
+// checksumsFile builds a checksums.txt in GoReleaser's default,
+// sha256sum-compatible format: "<hex digest>  <filename>" per line.
+func checksumsFile(files map[string][]byte) []byte {
+	var buf bytes.Buffer
+	for name, content := range files {
+		sum := sha256.Sum256(content)
+		fmt.Fprintf(&buf, "%x  %s\n", sum, name)
+	}
+	return buf.Bytes()
+}
+
+// newReleaseServer serves each entry of files at "/<name>", so a Release's
+// Assets can point distinct URLs (e.g. the archive and checksums.txt) at
+// the same httptest.Server.
+func newReleaseServer(t *testing.T, files map[string][]byte) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	for name, content := range files {
+		content := content
+		mux.HandleFunc("/"+name, func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(content)
+		})
+	}
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
 }
 
 func TestExtractBinary(t *testing.T) {
@@ -247,20 +276,22 @@ func TestInstall(t *testing.T) {
 		// these subtests exercise; see TestInstallRefusesWindows.
 		t.Skip("Install refuses on windows before reaching any of this")
 	}
-	t.Run("downloads, extracts, and atomically installs the binary", func(t *testing.T) {
-		assetName := fmt.Sprintf("viber_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+	assetName := fmt.Sprintf("viber_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+
+	t.Run("downloads, verifies, extracts, and atomically installs the binary", func(t *testing.T) {
 		archive := tarGz(t, map[string]string{
 			"viber_1.2.3_" + runtime.GOOS + "_" + runtime.GOARCH + "/viber": "compiled-binary-bytes",
-		})
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write(archive.Bytes())
-		}))
-		defer srv.Close()
+		}).Bytes()
+		sums := checksumsFile(map[string][]byte{assetName: archive})
+		srv := newReleaseServer(t, map[string][]byte{assetName: archive, checksumsAssetName: sums})
 		useTestServer(t, srv)
 
 		rel := &Release{
 			TagName: "v1.2.3",
-			Assets:  []Asset{{Name: assetName, URL: srv.URL}},
+			Assets: []Asset{
+				{Name: assetName, URL: srv.URL + "/" + assetName},
+				{Name: checksumsAssetName, URL: srv.URL + "/" + checksumsAssetName},
+			},
 		}
 		dest := filepath.Join(t.TempDir(), "viber")
 
@@ -288,18 +319,128 @@ func TestInstall(t *testing.T) {
 		}
 	})
 
+	t.Run("refuses a release that does not publish checksums.txt", func(t *testing.T) {
+		archive := tarGz(t, map[string]string{"viber_1.2.3_" + runtime.GOOS + "_" + runtime.GOARCH + "/viber": "x"}).Bytes()
+		srv := newReleaseServer(t, map[string][]byte{assetName: archive})
+		useTestServer(t, srv)
+
+		rel := &Release{TagName: "v1.2.3", Assets: []Asset{{Name: assetName, URL: srv.URL + "/" + assetName}}}
+		dest := filepath.Join(t.TempDir(), "viber")
+
+		_, err := Install(context.Background(), rel, "viber", dest)
+		if err == nil || !strings.Contains(err.Error(), checksumsAssetName) {
+			t.Fatalf("err = %v, want it to mention %s", err, checksumsAssetName)
+		}
+		if _, statErr := os.Stat(dest); !os.IsNotExist(statErr) {
+			t.Errorf("dest = %v, want it to not exist (nothing written)", statErr)
+		}
+	})
+
+	t.Run("refuses a checksums.txt with no entry for the chosen asset", func(t *testing.T) {
+		archive := tarGz(t, map[string]string{"viber_1.2.3_" + runtime.GOOS + "_" + runtime.GOARCH + "/viber": "x"}).Bytes()
+		sums := checksumsFile(map[string][]byte{"some-other-file.tar.gz": archive})
+		srv := newReleaseServer(t, map[string][]byte{assetName: archive, checksumsAssetName: sums})
+		useTestServer(t, srv)
+
+		rel := &Release{
+			TagName: "v1.2.3",
+			Assets: []Asset{
+				{Name: assetName, URL: srv.URL + "/" + assetName},
+				{Name: checksumsAssetName, URL: srv.URL + "/" + checksumsAssetName},
+			},
+		}
+		dest := filepath.Join(t.TempDir(), "viber")
+
+		_, err := Install(context.Background(), rel, "viber", dest)
+		if err == nil || !strings.Contains(err.Error(), "does not list a checksum") {
+			t.Fatalf("err = %v, want a no-checksum-listed error", err)
+		}
+		if _, statErr := os.Stat(dest); !os.IsNotExist(statErr) {
+			t.Errorf("dest = %v, want it to not exist (nothing written)", statErr)
+		}
+	})
+
+	t.Run("refuses a downloaded archive that does not match checksums.txt", func(t *testing.T) {
+		archive := tarGz(t, map[string]string{"viber_1.2.3_" + runtime.GOOS + "_" + runtime.GOARCH + "/viber": "x"}).Bytes()
+		tampered := tarGz(t, map[string]string{"viber_1.2.3_" + runtime.GOOS + "_" + runtime.GOARCH + "/viber": "not-what-was-signed"}).Bytes()
+		// checksums.txt lists the digest of `archive`, but the server serves
+		// `tampered` for the asset itself - simulating a corrupted download
+		// or a release whose asset was swapped after checksums.txt was cut.
+		sums := checksumsFile(map[string][]byte{assetName: archive})
+		srv := newReleaseServer(t, map[string][]byte{assetName: tampered, checksumsAssetName: sums})
+		useTestServer(t, srv)
+
+		rel := &Release{
+			TagName: "v1.2.3",
+			Assets: []Asset{
+				{Name: assetName, URL: srv.URL + "/" + assetName},
+				{Name: checksumsAssetName, URL: srv.URL + "/" + checksumsAssetName},
+			},
+		}
+		dest := filepath.Join(t.TempDir(), "viber")
+		if err := os.WriteFile(dest, []byte("previously installed"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+
+		_, err := Install(context.Background(), rel, "viber", dest)
+		if err == nil || !strings.Contains(err.Error(), "checksum mismatch") {
+			t.Fatalf("err = %v, want a checksum-mismatch error", err)
+		}
+		got, err := os.ReadFile(dest)
+		if err != nil || string(got) != "previously installed" {
+			t.Errorf("dest = %q, %v, want the previous install left untouched", got, err)
+		}
+	})
+
 	t.Run("wraps a non-200 asset download", func(t *testing.T) {
-		assetName := fmt.Sprintf("viber_1.2.3_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH)
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// A checksums.txt naming the asset still has to be served so Install
+		// gets past the checksum lookup and reaches the archive download
+		// itself; the digest here is never checked since the download fails
+		// first.
+		sums := checksumsFile(map[string][]byte{assetName: []byte("placeholder")})
+		mux := http.NewServeMux()
+		mux.HandleFunc("/"+assetName, func(w http.ResponseWriter, _ *http.Request) {
 			http.Error(w, "gone", http.StatusGone)
-		}))
+		})
+		mux.HandleFunc("/"+checksumsAssetName, func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write(sums)
+		})
+		srv := httptest.NewServer(mux)
 		defer srv.Close()
 		useTestServer(t, srv)
 
-		rel := &Release{TagName: "v1.2.3", Assets: []Asset{{Name: assetName, URL: srv.URL}}}
+		rel := &Release{
+			TagName: "v1.2.3",
+			Assets: []Asset{
+				{Name: assetName, URL: srv.URL + "/" + assetName},
+				{Name: checksumsAssetName, URL: srv.URL + "/" + checksumsAssetName},
+			},
+		}
 		_, err := Install(context.Background(), rel, "viber", filepath.Join(t.TempDir(), "viber"))
 		if err == nil || !strings.Contains(err.Error(), "410") {
 			t.Fatalf("err = %v, want it to mention 410", err)
+		}
+	})
+
+	t.Run("wraps a non-200 checksums.txt download", func(t *testing.T) {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/"+checksumsAssetName, func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "nope", http.StatusNotFound)
+		})
+		srv := httptest.NewServer(mux)
+		defer srv.Close()
+		useTestServer(t, srv)
+
+		rel := &Release{
+			TagName: "v1.2.3",
+			Assets: []Asset{
+				{Name: assetName, URL: srv.URL + "/" + assetName},
+				{Name: checksumsAssetName, URL: srv.URL + "/" + checksumsAssetName},
+			},
+		}
+		_, err := Install(context.Background(), rel, "viber", filepath.Join(t.TempDir(), "viber"))
+		if err == nil || !strings.Contains(err.Error(), "404") {
+			t.Fatalf("err = %v, want it to mention 404", err)
 		}
 	})
 }
