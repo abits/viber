@@ -41,6 +41,23 @@ Commands from `sdlc-cross-role`: `/full-lifecycle`, `/feature-kickoff`, `/qualit
 - `@<role>` shorthand in a Claude Code message (e.g. `@architect`)
 - Free-form: mention the role and hand-off explicitly
 
+## Agent teams mode (experimental)
+
+`.claude/settings.json` sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, so Claude Code can launch
+roles named above as independent teammate sessions — each with its own context window, a shared
+self-claiming task list, and direct inter-agent messaging — instead of ephemeral subagents.
+
+Trade-offs to weigh before relying on it:
+
+- Interactive sessions only; it has no effect under `-p`/headless runs (roles still spawn as
+  ordinary subagents there).
+- No session resumption: `/resume` and `/rewind` drop in-process teammates.
+- Token cost scales linearly with team size — each teammate is a full session.
+- One team per session, no nested teams, and per-teammate permissions are fixed at spawn time.
+
+See <https://code.claude.com/docs/en/agent-teams.md>. Set the env var to `0` in
+`.claude/settings.json` to fall back to ordinary subagent-only behavior.
+
 ## Roles
 
 | Role              | File                                    | Focus                                                       |

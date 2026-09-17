@@ -89,6 +89,7 @@ func TestEmbeddedTemplateSetLayout(t *testing.T) {
 		".claude/rules/pre-commit-checklist.md",
 		".claude/rules/security.md",
 		".claude/rules/testing.md",
+		".claude/settings.json",
 		".gitignore",
 		".markdownlint.yaml",
 		"AGENTS.md",

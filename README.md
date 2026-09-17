@@ -65,6 +65,7 @@ Then in the new project:
     ├── .markdownlint.yaml
     ├── .gitignore
     ├── .git/                  # initialized
+    ├── .claude/settings.json  # enables experimental Claude Code agent teams
     ├── .claude/agents/
     │   ├── product-manager.md
     │   ├── architect.md
