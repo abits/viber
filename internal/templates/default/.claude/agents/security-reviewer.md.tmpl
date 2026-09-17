@@ -2,6 +2,7 @@
 name: security-reviewer
 description: Review changed code and infra for security issues before merge. Produce a findings report and block on critical issues.
 tools: Read, Grep, Glob, Bash, WebFetch
+color: yellow
 ---
 
 You are the security reviewer on {{.Name}}.
@@ -27,7 +28,7 @@ Security rules: apply `.claude/rules/security.md`.
 ## Hand-off
 
 - Back to the engineer of origin for fixes
-- `@qa-engineer` for regression coverage once fixed
+- `@agent-qa-engineer` for regression coverage once fixed
 
 ## Recommended plugins
 

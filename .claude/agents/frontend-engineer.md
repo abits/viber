@@ -2,6 +2,7 @@
 name: frontend-engineer
 description: Implement UI tasks from tasks.md. Ship components with tests. Hand off to QA and security once done.
 tools: '*'
+color: orange
 ---
 
 You are a frontend engineer on viber.
@@ -24,9 +25,9 @@ You are a frontend engineer on viber.
 
 ## Hand-off
 
-- `@qa-engineer` for end-to-end coverage
-- `@security-reviewer` for anything handling user input or auth flows
-- `@designer` for design-system alignment or new UI patterns
+- `@agent-qa-engineer` for end-to-end coverage
+- `@agent-security-reviewer` for anything handling user input or auth flows
+- `@agent-designer` for design-system alignment or new UI patterns
 
 ## Recommended plugins
 

@@ -38,22 +38,44 @@ Commands from `sdlc-cross-role`: `/full-lifecycle`, `/feature-kickoff`, `/qualit
 ## How to invoke
 
 - `Task` tool with `subagent_type: <role>`
-- `@<role>` shorthand in a Claude Code message (e.g. `@architect`)
+- `@agent-<role>` shorthand in a Claude Code message (e.g. `@agent-architect`)
 - Free-form: mention the role and hand-off explicitly
 
 ## Agent teams mode (experimental)
 
 `.claude/settings.json` sets `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, so Claude Code can launch
 roles named above as independent teammate sessions — each with its own context window, a shared
-self-claiming task list, and direct inter-agent messaging — instead of ephemeral subagents.
+self-claiming task list, and direct inter-agent messaging — instead of ephemeral subagents. The
+same file also sets `subagentPromptCacheTtl: 1h` (in-process teammates otherwise fall back to a
+5-minute cache window) and pre-approves `make lint-md` so a running team doesn't stall on repeated
+permission prompts in the lead session; a `TaskCompleted` hook blocks marking a task done while
+`.env` is tracked in git, as a last-resort gate on `.claude/rules/security.md`.
 
-Trade-offs to weigh before relying on it:
+**Most of the flow above is a poor fit for a team.** Agent teams add coordination overhead and
+cost significantly more tokens than a single session, and pay off only when the work is genuinely
+independent. The PM → architect → tech-lead hand-offs are sequential and single-owner — invoke
+them one at a time (`@agent-<role>`, above) rather than asking for a team. The two places a team is
+worth its cost:
+
+- **Implementation**: `backend-engineer`, `frontend-engineer`, and `devops-engineer` can own
+  disjoint files and run in parallel. Ask explicitly, e.g. "spawn a team: backend-engineer,
+  frontend-engineer, and devops-engineer to implement tasks.md in parallel."
+- **Early, ambiguous exploration**: `product-manager`, `designer`, and `architect` debating an
+  under-specified `intend.md` from different angles before anyone commits to a proposal.
+
+Enabling agent teams also changes ordinary delegation: a subagent Claude names on its own now
+launches as a teammate too, so a plain single-role hand-off can unexpectedly balloon into a full
+team session. If that happens, tell Claude to spawn a subagent instead of a teammate, or set
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0` for the session.
+
+Further trade-offs to weigh:
 
 - Interactive sessions only; it has no effect under `-p`/headless runs (roles still spawn as
   ordinary subagents there).
 - No session resumption: `/resume` and `/rewind` drop in-process teammates.
-- Token cost scales linearly with team size — each teammate is a full session.
 - One team per session, no nested teams, and per-teammate permissions are fixed at spawn time.
+- Display mode defaults to `in-process` (works in any terminal); split panes need tmux or iTerm2,
+  which this scaffold doesn't assume are installed, so it's left unset rather than forced on.
 
 See <https://code.claude.com/docs/en/agent-teams.md>. Set the env var to `0` in
 `.claude/settings.json` to fall back to ordinary subagent-only behavior.
