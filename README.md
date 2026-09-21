@@ -2,11 +2,21 @@
 
 Scaffold a **vibe-coding** project wired for [Claude Code](https://claude.com/claude-code) + [OpenSpec](https://github.com/Fission-AI/OpenSpec), with a Claude Code sub-agent team covering the software development lifecycle.
 
-One command turns an empty directory into a project you can hand to `/opsx:explore`: a filled-in scaffold, initialized git repo, an `intend.md` you fill to describe what you're building, and seven role-scoped sub-agents ready to hand off between PM → architect → engineers → QA / security.
+One command turns an empty directory into a project you can hand to `/opsx:explore`: a filled-in scaffold, initialized git repo, an `intend.md` you fill to describe what you're building, and nine role-scoped sub-agents ready to hand off along the SDLC: PM → designer / architect → tech-lead → engineers → QA / security.
+
+## What's new — v0.3.0
+
+Released 2026-09-21. Full release: <https://github.com/abits/viber/releases/tag/v0.3.0>.
+
+- **`viber update` now verifies release archives** against `checksums.txt` before overwriting the binary — no unverified swaps of the installed executable.
+- **`viber init` is atomic on a fresh destination**: rendering happens in a temp dir and is renamed into place only after every file is written, so a broken template or full disk leaves nothing behind. Merge behaviour (`--force` onto an existing dir) is unchanged.
+- **`internal/ghfetch`** extracted so `--from` (template tarballs) and `viber update` (release assets) share one GitHub-tarball code path.
+- **Six extra linters wired in** (`revive`, `godot`, `errorlint`, `bodyclose`, `gosec`, `misspell`) with per-symbol doc coverage across the codebase.
+- **`v0.3.0` release CI green on Linux, macOS, and Windows** (linux/darwin/windows × amd64/arm64 archives + `checksums.txt`).
 
 ## Install
 
-**From a GitHub release** (once one is cut):
+**From a GitHub release:**
 
     viber update           # if you already have viber installed
     # or download from https://github.com/abits/viber/releases
@@ -66,13 +76,16 @@ Then in the new project:
     ├── .gitignore
     ├── .git/                  # initialized
     ├── .claude/agents/
-    │   ├── product-manager.md
     │   ├── architect.md
     │   ├── backend-engineer.md
-    │   ├── frontend-engineer.md
+    │   ├── designer.md
     │   ├── devops-engineer.md
+    │   ├── frontend-engineer.md
+    │   ├── product-manager.md
+    │   ├── qa-engineer.md
     │   ├── security-reviewer.md
-    │   └── qa-engineer.md
+    │   └── tech-lead.md
+    ├── .claude/rules/          # AI directives auto-loaded every turn
     └── openspec/              # created by `openspec init`
 
 ## Subcommands
