@@ -54,3 +54,14 @@ Commands from `sdlc-cross-role`: `/full-lifecycle`, `/feature-kickoff`, `/qualit
 | DevOps engineer   | `.claude/agents/devops-engineer.md`     | CI/CD, IaC, release plumbing                                |
 | Security reviewer | `.claude/agents/security-reviewer.md`   | Threat model + review before merge                          |
 | QA engineer       | `.claude/agents/qa-engineer.md`         | Test plan + integration/E2E tests                           |
+
+## Slash commands
+
+Two project-local slash commands wire this scaffold into GitHub. They're thin wrappers over the scripts in `scripts/`, so `make repo-init` / `make sync-issues` do the same thing from a shell.
+
+- `/repo-init` — turns the local scaffold into a GitHub-hosted repo (`git init` if needed, initial commit if none, `gh repo create --private --push`). Idempotent: re-running is safe.
+- `/sync-issues` — mirrors every `- [ ] N.M Task text` line under `openspec/changes/*/tasks.md` into a GitHub Issue and reconciles state (ticked → closed, un-ticked → reopened, deleted/renamed → orphan closed). One-way (tasks.md is source of truth). Labels every issue `openspec` + `openspec/<change-id>`.
+
+`.claude/settings.json` also carries a `PostToolUse` hook that runs `sync-issues.sh --auto` in the background whenever `openspec/changes/*/tasks.md` is written, so `/opsx:apply` progress reflects into GitHub without manual re-syncing.
+
+Prereqs for both: `gh` (authenticated via `gh auth login`), `jq`. See `README.md`.

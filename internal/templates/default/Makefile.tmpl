@@ -1,4 +1,10 @@
-.PHONY: lint-md
+.PHONY: lint-md repo-init sync-issues
 
 lint-md:
 	markdownlint-cli2 "**/*.md"
+
+repo-init:
+	bash scripts/repo-init.sh
+
+sync-issues:
+	bash scripts/sync-issues.sh
