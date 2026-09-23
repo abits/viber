@@ -4,6 +4,14 @@ Scaffold a **vibe-coding** project wired for [Claude Code](https://claude.com/cl
 
 One command turns an empty directory into a project you can hand to `/opsx:explore`: a filled-in scaffold, initialized git repo, an `intend.md` you fill to describe what you're building, and nine role-scoped sub-agents ready to hand off along the SDLC: PM → designer / architect → tech-lead → engineers → QA / security.
 
+## What's new — v0.3.1
+
+Released 2026-09-23. Full release: <https://github.com/abits/viber/releases/tag/v0.3.1>.
+
+- **Git + GitHub integration in every scaffolded project.** `viber init` now generates `scripts/repo-init.sh` (one-shot `gh repo create --private --push`) and `scripts/sync-issues.sh` (one-way mirror of `openspec/changes/*/tasks.md` → GitHub Issues). Both are surfaced as `make repo-init` / `make sync-issues` targets and as Claude Code slash commands `/repo-init` / `/sync-issues`.
+- **OpenSpec tasks auto-sync.** The scaffold ships a `.claude/settings.json` with a `PostToolUse` hook that runs `sync-issues.sh --auto` in the background whenever Claude writes to a `tasks.md`, so `/opsx:apply` progress reflects into GitHub Issues without manual re-syncing.
+- **Idempotent issue fingerprinting.** Each task is identified by `sha1(change-id|normalised-text)[:12]` embedded in the issue body. Renumbering tasks (`1.3 → 2.1`) doesn't churn issues. Deleting or renaming a task closes the orphaned issue automatically on the next sync.
+
 ## What's new — v0.3.0
 
 Released 2026-09-21. Full release: <https://github.com/abits/viber/releases/tag/v0.3.0>.
