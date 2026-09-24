@@ -99,7 +99,7 @@ Then in the new project:
 ## Subcommands
 
 | Command | Purpose |
-|---|---|
+| --- | --- |
 | `viber init [name] [dir]` | Initialize and populate a new agentic coding project (interactive by default). |
 | `viber version` | Print version, commit, and build date. |
 | `viber update` | Download the latest GitHub release, verify it against `checksums.txt`, and overwrite `~/bin/viber` (Linux/macOS). |
@@ -127,6 +127,16 @@ Optional: set `GITHUB_TOKEN` for private repos or higher rate limits.
     make tidy           # go mod tidy
     make man            # -> man/viber*.1
     make completions    # -> completions/viber.{bash,zsh,fish}
+    make lint-md        # markdownlint-cli2 over **/*.md
+
+### viber is scaffolded with viber
+
+This repository carries the same scaffold `viber init` generates: `intend.md`, `openspec/`, the sub-agent team in `.claude/agents/` (see `AGENTS.md`), the `/repo-init` and `/sync-issues` commands, and their scripts. New work starts as an OpenSpec change (`/opsx:propose` or `/opsx:explore` in Claude Code), and its `tasks.md` is mirrored into GitHub Issues.
+
+The template-owned files are generated, not edited in place:
+
+    make dogfood        # re-render them from internal/templates/default/
+    make dogfood-check  # fail if any of them drifted (runs in CI)
 
 ## Releasing
 

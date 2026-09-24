@@ -1,0 +1,41 @@
+schema: spec-driven
+
+context: |
+  viber is a Go CLI (Cobra, Bubble Tea) that scaffolds Claude Code + OpenSpec
+  projects; intend.md states the problem, goals, and constraints.
+  Architecture, invariants (exit codes, step ordering, context cancellation),
+  and conventions live in CLAUDE.md and .claude/rules/ - follow them.
+  Dependency direction: cmd -> steps -> {templates, gitrepo, openspec}.
+  Template-owned files are edited under internal/templates/default/ and
+  re-rendered with `make dogfood`, never edited in place.
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

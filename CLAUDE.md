@@ -8,6 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `viber init` verifies that `openspec` is installed, creates a directory, initializes git, renders
 a template set into it, and runs `openspec init`.
 
+viber is scaffolded with itself. Read `intend.md` for the problem, goals, and constraints.
+Requirements and tech decisions are drafted via OpenSpec (`/opsx:explore`); the outputs live
+under `openspec/`.
+
 ## Layout
 
     cmd/viber/            main; injects version/commit/date via ldflags
@@ -42,9 +46,27 @@ The dependency direction is `cmd -> steps -> {templates, gitrepo, openspec}`. Ke
   after every Write/Edit — don't format by hand.
 - A `Stop` hook runs `golangci-lint run ./... && go test ./...` at the end of each turn. Treat a red
   result as blocking. Lint config: `.golangci.yml` (v2, `default: standard`).
-- Exported identifiers carry doc comments; see https://go.dev/doc/comment.
+- Exported identifiers carry doc comments; see <https://go.dev/doc/comment>.
 - `make test` / `make lint` / `make build`; `make bump-patch` commits and tags a release.
+
+## Dogfooding
+
+Files listed in `DOGFOOD_FILES` (`Makefile`) are owned by `internal/templates/default/`: edit the
+template, then run `make dogfood`. CI runs `make dogfood-check` and fails on drift. `CLAUDE.md`,
+`README.md`, `Makefile`, `.gitignore`, and `.claude/settings.json` are repo-owned supersets of
+their templates; when a template for one of them changes, merge the change here by hand.
+
+## Team
+
+Nine role-specific sub-agents live in `.claude/agents/`. See `AGENTS.md` for the flow and hand-off
+patterns.
+
+## Markdown
+
+Lint prose with `make lint-md` (`markdownlint-cli2`, config `.markdownlint.yaml`).
 
 ## Skills
 
 - `/commit-push-pr` — user-invoked: stage, commit, push, open a PR via `gh`.
+- `/repo-init`, `/sync-issues` — scaffold commands; see `AGENTS.md`. The `PostToolUse` hook in
+  `.claude/settings.json` mirrors `openspec/changes/*/tasks.md` into GitHub Issues on write.

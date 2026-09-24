@@ -26,10 +26,15 @@ go.work.sum
 
 # env file
 .env
+.env.local
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Build output
 /bin/
