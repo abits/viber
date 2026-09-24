@@ -59,6 +59,22 @@ jobs:
         with:
           version: v2.13.2
 
+  # viber is scaffolded with itself: the template-owned files must match a
+  # fresh render, and the scaffold's markdown must pass its own lint config.
+  scaffold:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+      - name: dogfood-check
+        run: make dogfood-check
+      - name: lint-md
+        run: |
+          npm install -g markdownlint-cli2@0.23.3
+          make lint-md
+
   tidy:
     runs-on: ubuntu-latest
     steps:
