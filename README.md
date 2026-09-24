@@ -4,6 +4,14 @@ Scaffold a **vibe-coding** project wired for [Claude Code](https://claude.com/cl
 
 One command turns an empty directory into a project you can hand to `/opsx:explore`: a filled-in scaffold, initialized git repo, an `intend.md` you fill to describe what you're building, and nine role-scoped sub-agents ready to hand off along the SDLC: PM → designer / architect → tech-lead → engineers → QA / security.
 
+## What's new — v0.4.0
+
+Released 2026-09-24. Full release: <https://github.com/abits/viber/releases/tag/v0.4.0>.
+
+- **viber is scaffolded with viber.** The repository now carries the same scaffold `viber init` generates (`intend.md`, `openspec/`, agents, rules, `/repo-init` and `/sync-issues`). `make dogfood` re-renders the template-owned files; CI's new `scaffold` job runs `make dogfood-check` and fails on drift.
+- **`make lint-md` passes on a fresh scaffold.** `.markdownlint.yaml` lets front matter (`title`, `name`, `description`) stand in for the first-line H1, so generated agents, commands, and skills no longer fail MD041, and `lint-md` skips the files `openspec init` generates.
+- **Scaffolded `CLAUDE.md` counts the agent team correctly** (nine, not seven).
+
 ## What's new — v0.3.1
 
 Released 2026-09-23. Full release: <https://github.com/abits/viber/releases/tag/v0.3.1>.
@@ -79,10 +87,15 @@ Then in the new project:
     ├── README.md
     ├── CLAUDE.md
     ├── AGENTS.md              # sub-agent team overview and flow
-    ├── Makefile               # `make lint-md`
+    ├── Makefile               # `make lint-md` / `repo-init` / `sync-issues`
     ├── .markdownlint.yaml
     ├── .gitignore
     ├── .git/                  # initialized
+    ├── scripts/
+    │   ├── repo-init.sh       # gh repo create --private --push
+    │   └── sync-issues.sh     # openspec tasks.md -> GitHub Issues
+    ├── .claude/settings.json  # PostToolUse hook: auto-sync tasks.md
+    ├── .claude/commands/      # /repo-init, /sync-issues
     ├── .claude/agents/
     │   ├── architect.md
     │   ├── backend-engineer.md
