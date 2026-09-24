@@ -2,4 +2,7 @@ default: true
 
 MD013: false   # line-length off
 MD033: false   # inline HTML allowed (kept off so intend.md prompts render)
-MD041: true    # first line must be H1
+MD041:         # first line must be H1 ...
+  # ... unless front matter names the file, as Claude Code agents, commands,
+  # and skills do.
+  front_matter_title: "^\\s*(title|name|description)\\s*[:=]"
