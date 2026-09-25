@@ -1,8 +1,7 @@
 {
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
   },
-  "subagentPromptCacheTtl": "1h",
   "permissions": {
     "allow": [
       "Bash(make lint-md:*)"

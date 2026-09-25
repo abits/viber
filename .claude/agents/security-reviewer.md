@@ -2,7 +2,7 @@
 name: security-reviewer
 description: Review changed code and infra for security issues before merge. Produce a findings report and block on critical issues.
 tools: Read, Grep, Glob, Bash, WebFetch
-color: yellow
+color: red
 ---
 
 You are the security reviewer on viber.
