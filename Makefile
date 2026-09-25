@@ -10,7 +10,8 @@ LDFLAGS := -s -w \
 	-X main.date=$(DATE)
 
 .PHONY: all build install test lint fmt tidy man completions release \
-        bootstrap-agents bump-patch bump-minor bump-major _bump
+        dogfood dogfood-check lint-md repo-init sync-issues \
+        bump-patch bump-minor bump-major _bump
 
 all: build
 
@@ -48,19 +49,48 @@ completions: build
 release:
 	goreleaser release --clean
 
-# Render the scaffolded agent team into viber's own .claude/agents/ so Claude
-# working on viber can invoke the same roles that scaffolded projects use.
-# Regenerable — rerun after editing internal/templates/default/.claude/agents/.
-bootstrap-agents: build
-	@tmp=$$(mktemp -d) && dest="$$tmp/viber" && \
-	./bin/viber init viber "$$dest" --no-tui \
-		--desc="Scaffold a vibe-coding project wired for Claude Code + OpenSpec." \
-		>/dev/null && \
-	mkdir -p .claude/agents && \
-	cp -f "$$dest/.claude/agents/"*.md .claude/agents/ && \
-	cp -f "$$dest/AGENTS.md" AGENTS.md && \
-	rm -rf "$$tmp" && \
-	echo "wrote $$(ls .claude/agents/*.md | wc -l) agents + AGENTS.md"
+# viber is scaffolded with itself. DOGFOOD_FILES are owned by the embedded
+# template set: `make dogfood` copies them verbatim from a fresh render, and
+# `make dogfood-check` (run in CI) fails when any of them has drifted. Edit
+# them under internal/templates/default/, never in place. CLAUDE.md,
+# README.md, Makefile, .gitignore, and .claude/settings.json are repo-owned
+# supersets of their templates and are merged by hand.
+DOGFOOD_NAME := viber
+DOGFOOD_DESC := Scaffold a vibe-coding project wired for Claude Code + OpenSpec.
+DOGFOOD_FILES := AGENTS.md .markdownlint.yaml \
+	scripts/repo-init.sh scripts/sync-issues.sh \
+	.claude/commands/repo-init.md .claude/commands/sync-issues.md \
+	$(patsubst internal/templates/default/%.tmpl,%,$(wildcard \
+		internal/templates/default/.claude/agents/*.tmpl \
+		internal/templates/default/.claude/rules/*.tmpl))
+
+dogfood:
+	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \
+	go run ./tools/render-template -name "$(DOGFOOD_NAME)" -desc "$(DOGFOOD_DESC)" "$$tmp/out" && \
+	for f in $(DOGFOOD_FILES); do \
+		mkdir -p "$$(dirname "$$f")" && cp -f "$$tmp/out/$$f" "$$f" || exit 1; \
+	done && \
+	echo "dogfood: wrote $(words $(DOGFOOD_FILES)) template-owned files"
+
+dogfood-check:
+	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \
+	go run ./tools/render-template -name "$(DOGFOOD_NAME)" -desc "$(DOGFOOD_DESC)" "$$tmp/out" && \
+	rc=0 && for f in $(DOGFOOD_FILES); do \
+		diff -u "$$tmp/out/$$f" "$$f" || rc=1; \
+	done && \
+	if [ $$rc -ne 0 ]; then echo "dogfood-check: template-owned files drifted; run 'make dogfood'" >&2; fi && \
+	exit $$rc
+
+# Scaffold targets, identical to the ones `viber init` generates. lint-md skips
+# the files `openspec init` generates; `openspec update` overwrites them.
+lint-md:
+	markdownlint-cli2 "**/*.md" "#.claude/skills/openspec-*/**" "#.claude/commands/opsx/**"
+
+repo-init:
+	bash scripts/repo-init.sh
+
+sync-issues:
+	bash scripts/sync-issues.sh
 
 bump-patch:
 	@$(MAKE) --no-print-directory _bump PART=patch

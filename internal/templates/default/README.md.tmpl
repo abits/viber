@@ -6,6 +6,8 @@
 
 - [Claude Code](https://claude.com/claude-code)
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec) — `npm install -g @fission-ai/openspec`
+- [GitHub CLI](https://cli.github.com) — `brew install gh` / `apt install gh`, then `gh auth login` (for `repo-init` and `sync-issues`)
+- [jq](https://jqlang.github.io/jq/) — `brew install jq` / `apt install jq` (parses `gh` output for `sync-issues`)
 - [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) — `npm install -g markdownlint-cli2` (for `make lint-md`)
 
 ## Getting started
@@ -15,6 +17,21 @@
 3. Invoke `/opsx:explore` in Claude to draft requirements and tech decisions.
 4. Hand off to the sub-agent team in `.claude/agents/` — see `AGENTS.md`.
 
+## Git + GitHub
+
+Once `intend.md` is ready and you've generated at least one openspec change:
+
+    make repo-init      # git init (if needed), initial commit, gh repo create --private --push
+    make sync-issues    # mirror openspec/changes/*/tasks.md into GitHub Issues
+
+`repo-init` defaults to `--private`; pass `--public` to `bash scripts/repo-init.sh --public` to override. `sync-issues` supports `--dry-run` to preview and `--change <id>` to scope to a single change.
+
+The scaffold also ships a Claude Code `PostToolUse` hook (`.claude/settings.json`) that runs `scripts/sync-issues.sh --auto` in the background whenever Claude writes to a `openspec/changes/*/tasks.md`, so issues stay in sync as `/opsx:apply` ticks boxes. The hook is silent on missing prereqs (no `gh` auth, no `origin`, etc.).
+
+Each synced issue carries a `<!-- viber-task-id: … -->` fingerprint plus the labels `openspec` and `openspec/<change-id>`. Ticking `[x]` closes the issue; un-ticking reopens; deleting a task or editing its wording closes the orphan on the next sync with a note pointing at `openspec/`.
+
 ## Commands
 
-    make lint-md    # markdown linting
+    make lint-md        # markdown linting
+    make repo-init      # first-time GitHub repo creation + push
+    make sync-issues    # openspec/tasks.md → GitHub Issues

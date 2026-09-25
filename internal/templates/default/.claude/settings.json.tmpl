@@ -15,26 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; case \"$f\" in *.go) command -v goimports >/dev/null && goimports -w \"$f\" || gofmt -w \"$f\";; esac; } 2>/dev/null || true"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
             "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; case \"$f\" in */openspec/changes/*/tasks.md) case \"$f\" in */openspec/changes/archive/*) ;; *) (cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && bash scripts/sync-issues.sh --auto >/dev/null 2>&1 &) ;; esac ;; esac; } 2>/dev/null || true"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ -f go.mod ] || exit 0; golangci-lint run ./... && go test ./..."
           }
         ]
       }

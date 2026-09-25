@@ -84,6 +84,8 @@ func TestEmbeddedTemplateSetLayout(t *testing.T) {
 		".claude/agents/qa-engineer.md",
 		".claude/agents/security-reviewer.md",
 		".claude/agents/tech-lead.md",
+		".claude/commands/repo-init.md",
+		".claude/commands/sync-issues.md",
 		".claude/rules/ai-output-style.md",
 		".claude/rules/git-hygiene.md",
 		".claude/rules/pre-commit-checklist.md",
@@ -97,6 +99,8 @@ func TestEmbeddedTemplateSetLayout(t *testing.T) {
 		"Makefile",
 		"README.md",
 		"intend.md",
+		"scripts/repo-init.sh",
+		"scripts/sync-issues.sh",
 	}
 	got := renderedFiles(t, dst)
 	if !reflect.DeepEqual(got, want) {
