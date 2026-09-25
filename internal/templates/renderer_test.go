@@ -156,3 +156,25 @@ func TestRenderMergeStopsAtFirstConflict(t *testing.T) {
 		t.Errorf("a.txt should have been merged in before the conflict on b.txt: %v", err)
 	}
 }
+
+func TestRenderRejectsTwoSourcesForOnePath(t *testing.T) {
+	src := fstest.MapFS{
+		"cfg/settings.json":      &fstest.MapFile{Data: []byte("plain")},
+		"cfg/settings.json.tmpl": &fstest.MapFile{Data: []byte("{{.Name}}")},
+	}
+	dst := filepath.Join(t.TempDir(), "proj")
+
+	err := Render(src, dst, Data{Name: "p"}, false)
+
+	if !errors.Is(err, ErrDuplicateTarget) {
+		t.Fatalf("err = %v, want ErrDuplicateTarget", err)
+	}
+	for _, name := range []string{"cfg/settings.json", "cfg/settings.json.tmpl"} {
+		if !strings.Contains(err.Error(), name) {
+			t.Errorf("error %q does not name source %q", err, name)
+		}
+	}
+	if _, statErr := os.Stat(dst); !os.IsNotExist(statErr) {
+		t.Errorf("dst = %v after a duplicate-target render, want it to not exist", statErr)
+	}
+}
