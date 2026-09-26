@@ -4,6 +4,14 @@ Scaffold a **vibe-coding** project wired for [Claude Code](https://claude.com/cl
 
 One command turns an empty directory into a project you can hand to `/opsx:explore`: a filled-in scaffold, initialized git repo, an `intend.md` you fill to describe what you're building, and nine role-scoped sub-agents ready to hand off along the SDLC: PM → designer / architect → tech-lead → engineers → QA / security.
 
+## What's new — v0.4.1
+
+Released 2026-09-26. Full release: <https://github.com/abits/viber/releases/tag/v0.4.1>.
+
+- **Agent teams config in every scaffold, off by default.** `.claude/settings.json` now carries `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0`, a `make lint-md` permission, and a `TaskCompleted` hook that blocks while `.env` is tracked in git. `AGENTS.md` explains when a team is worth its token cost and how to opt in.
+- **Agent hand-offs use the documented `@agent-<role>` mention**, and each role has a `color` in its front matter.
+- **Templates can no longer silently shadow each other.** A template set with both `foo` and `foo.tmpl` used to render whichever came last; `viber init` now fails and names both entries (`templates.ErrDuplicateTarget`).
+
 ## What's new — v0.4.0
 
 Released 2026-09-24. Full release: <https://github.com/abits/viber/releases/tag/v0.4.0>.
