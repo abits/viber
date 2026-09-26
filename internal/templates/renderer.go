@@ -27,6 +27,11 @@ type Data struct {
 // force is not set. Callers can match it with errors.Is.
 var ErrExists = errors.New("destination file already exists (use --force to overwrite)")
 
+// ErrDuplicateTarget is returned when two entries of a template set render
+// to the same path, such as "foo" and "foo.tmpl". Callers can match it with
+// errors.Is.
+var ErrDuplicateTarget = errors.New("template set renders two entries to the same path")
+
 // File modes used for rendered output.
 const (
 	dirMode  = 0o755
@@ -65,8 +70,10 @@ func Render(src fs.FS, dst string, data Data, force bool) error {
 }
 
 // renderAll expands every entry of src into the already-created, empty
-// directory tmp.
+// directory tmp. Two files that render to the same path are an error rather
+// than a silent overwrite, since whichever WalkDir visits last would win.
 func renderAll(src fs.FS, tmp string, data Data) error {
+	sources := map[string]string{}
 	return fs.WalkDir(src, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -74,10 +81,15 @@ func renderAll(src fs.FS, tmp string, data Data) error {
 		if p == "." {
 			return nil
 		}
-		out := filepath.Join(tmp, filepath.FromSlash(strings.TrimSuffix(p, ".tmpl")))
+		target := strings.TrimSuffix(p, ".tmpl")
+		out := filepath.Join(tmp, filepath.FromSlash(target))
 		if d.IsDir() {
 			return os.MkdirAll(out, dirMode)
 		}
+		if prev, ok := sources[target]; ok {
+			return fmt.Errorf("%w: %s and %s both render to %s", ErrDuplicateTarget, prev, p, target)
+		}
+		sources[target] = p
 		return writeFile(src, p, out, data)
 	})
 }
