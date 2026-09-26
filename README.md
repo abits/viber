@@ -94,7 +94,7 @@ Then in the new project:
     ├── scripts/
     │   ├── repo-init.sh       # gh repo create --private --push
     │   └── sync-issues.sh     # openspec tasks.md -> GitHub Issues
-    ├── .claude/settings.json  # PostToolUse hook: auto-sync tasks.md
+    ├── .claude/settings.json  # tasks.md sync hook; agent teams (off by default)
     ├── .claude/commands/      # /repo-init, /sync-issues
     ├── .claude/agents/
     │   ├── architect.md

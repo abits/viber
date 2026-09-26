@@ -1,4 +1,12 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(make lint-md:*)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
@@ -7,6 +15,16 @@
           {
             "type": "command",
             "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; case \"$f\" in */openspec/changes/*/tasks.md) case \"$f\" in */openspec/changes/archive/*) ;; *) (cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && bash scripts/sync-issues.sh --auto >/dev/null 2>&1 &) ;; esac ;; esac; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git ls-files --error-unmatch .env >/dev/null 2>&1 && { echo 'Blocked: .env is tracked in git -- see .claude/rules/security.md' >&2; exit 2; }; exit 0"
           }
         ]
       }

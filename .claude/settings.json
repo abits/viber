@@ -1,4 +1,12 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(make lint-md:*)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
@@ -26,6 +34,16 @@
           {
             "type": "command",
             "command": "[ -f go.mod ] || exit 0; golangci-lint run ./... && go test ./..."
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git ls-files --error-unmatch .env >/dev/null 2>&1 && { echo 'Blocked: .env is tracked in git -- see .claude/rules/security.md' >&2; exit 2; }; exit 0"
           }
         ]
       }
