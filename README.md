@@ -60,6 +60,7 @@ Released 2026-09-21. Full release: <https://github.com/abits/viber/releases/tag/
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec) — `npm install -g @fission-ai/openspec`
 - [Claude Code](https://claude.com/claude-code) — for the `/opsx:explore` slash command and the sub-agent team.
 - `git` on `PATH`.
+- Optional, for the scaffold's GitHub scripts (`make repo-init`, `make sync-issues`): [GitHub CLI](https://cli.github.com) (`gh auth login`) and [jq](https://jqlang.github.io/jq/).
 
 ## Quick start
 
@@ -114,7 +115,7 @@ Then in the new project:
     │   ├── qa-engineer.md
     │   ├── security-reviewer.md
     │   └── tech-lead.md
-    ├── .claude/rules/          # AI directives auto-loaded every turn
+    ├── .claude/rules/         # AI directives auto-loaded every turn
     └── openspec/              # created by `openspec init`
 
 ## Subcommands
@@ -139,6 +140,8 @@ The default templates are embedded in the binary. Point `--from` at any public G
 
 Optional: set `GITHUB_TOKEN` for private repos or higher rate limits.
 
+A template set is rendered file by file: files ending in `.tmpl` are executed as Go `text/template` against the project name and description, with the suffix stripped; all other files are copied verbatim. Two entries that would land on the same path, such as `README.md` and `README.md.tmpl`, are rejected rather than one silently overwriting the other. Archives with absolute or `..` paths, or larger than 8 MiB uncompressed, are rejected too.
+
 ## Development
 
     make build          # -> bin/viber (ldflags-injected version)
@@ -161,8 +164,17 @@ The template-owned files are generated, not edited in place:
 
 ## Releasing
 
-    make bump-patch     # or bump-minor / bump-major — commits + tags vX.Y.Z
-    git push --follow-tags
+`master` only changes through pull requests, so a release is a PR followed by a tag:
+
+1. On a branch, bump `VERSION` and add a "What's new" section to this README; open a PR.
+2. Merge it once CI is green.
+3. Tag the merge commit and push the tag, or create the release in the GitHub UI with tag `vX.Y.Z` targeting `master`:
+
+       git fetch origin master
+       git tag vX.Y.Z origin/master
+       git push origin vX.Y.Z
+
+`make bump-patch` / `bump-minor` / `bump-major` still bump, commit, and tag in one step for a local, direct-to-`master` workflow.
 
 The `release` workflow (`.github/workflows/release.yml`) runs GoReleaser on tag push and publishes cross-compiled binaries (linux/darwin/windows × amd64/arm64) to GitHub Releases.
 
