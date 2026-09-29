@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-// ErrRequiredFailed is returned by Run when at least one required check failed.
+// ErrRequiredFailed signals that at least one required check failed. Callers
+// rendering []Result return it so the command exits 1.
 var ErrRequiredFailed = errors.New("required check failed")
 
 // Status describes the outcome of a single check.
@@ -55,6 +56,11 @@ var versionRe = regexp.MustCompile(`\d+\.\d+(\.\d+)?`)
 
 var probeTimeout = 5 * time.Second
 
+// probeWaitDelay bounds how long probe waits for a tool's output pipes after
+// the timeout kills it. Without it, a child process that inherited stdout
+// (node shims, .cmd wrappers) keeps cmd.Run blocked past the timeout.
+const probeWaitDelay = 500 * time.Millisecond
+
 // probe runs c and returns its Result. The caller supplies the outer ctx;
 // probe derives a per-check timeout from it.
 func probe(ctx context.Context, c Check) Result {
@@ -65,6 +71,7 @@ func probe(ctx context.Context, c Check) Result {
 	cmd := execCommand(pctx, c.Args[0], c.Args[1:]...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	cmd.WaitDelay = probeWaitDelay
 
 	err := cmd.Run()
 	if err == nil {

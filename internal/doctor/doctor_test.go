@@ -130,3 +130,24 @@ func TestExtractVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestProbeTimeoutWithChildHoldingStdout(t *testing.T) {
+	orig, origTimeout := execCommand, probeTimeout
+	defer func() { execCommand, probeTimeout = orig, origTimeout }()
+	probeTimeout = 100 * time.Millisecond
+	execCommand = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
+		// The backgrounded sleep inherits stdout and outlives its parent shell.
+		return exec.CommandContext(ctx, "sh", "-c", "sleep 3 & echo 1.0.0")
+	}
+
+	start := time.Now()
+	r := probe(context.Background(), Check{Name: "tool", Args: []string{"tool", "--version"}})
+	took := time.Since(start)
+
+	if took > 2*time.Second {
+		t.Errorf("probe took %s, want it bounded by timeout plus wait delay", took)
+	}
+	if r.Status != StatusWarning || r.Problem != "timed out" {
+		t.Errorf("result = %s/%q, want warning/\"timed out\"", r.Status, r.Problem)
+	}
+}

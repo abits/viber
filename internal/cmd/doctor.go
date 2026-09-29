@@ -39,6 +39,10 @@ func newDoctorCmd() *cobra.Command {
 // It returns doctor.ErrRequiredFailed when at least one required check failed.
 func runDoctor(cmd *cobra.Command, asJSON bool) error {
 	results := doctor.Run(cmd.Context(), doctor.DefaultChecks())
+	// An interrupted run holds partial results whose error count proves nothing.
+	if err := cmd.Context().Err(); err != nil {
+		return fmt.Errorf("doctor interrupted: %w", err)
+	}
 
 	if asJSON {
 		return renderJSON(cmd.OutOrStdout(), results)

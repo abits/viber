@@ -183,3 +183,20 @@ func TestDoctorJSONExitCodesMatchHuman(t *testing.T) {
 		})
 	}
 }
+
+func TestDoctorInterruptedExitsNonZero(t *testing.T) {
+	restore := doctor.ExecCommandForTest(fakeExecAll("1.0.0"))
+	defer restore()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	root, _, errb := newTestRoot(t, "doctor")
+	got := execute(ctx, root)
+
+	if got != exitFailure {
+		t.Errorf("exit = %d after interrupt, want %d", got, exitFailure)
+	}
+	if !strings.Contains(errb.String(), "interrupted") {
+		t.Errorf("stderr = %q, want it to mention the interruption", errb.String())
+	}
+}
