@@ -46,7 +46,11 @@ The `gh auth` check declares `DependsOn: "gh"`. When `gh` failed, it is reported
 
 ### Exit code via a sentinel error
 
-When a required check fails, `doctor` renders all results and then returns `doctor.ErrRequiredFailed`. `internal/cmd` already maps any non-usage error to exit 1 and prints it. The message is the summary line, so the user sees it exactly once. Unknown flags and positional args use `usageArgs(cobra.NoArgs)` and exit 2, like the other commands.
+When a required check fails, `doctor` renders all results **including the summary line** to `cmd.OutOrStdout()`, then returns `doctor.ErrRequiredFailed`. `ErrRequiredFailed.Error()` returns the fixed string `"required check failed"` — not the summary text. `internal/cmd`'s `execute()` then prints `"Error: required check failed"` to stderr, which is distinct from the summary line already on stdout. The user sees the summary once (stdout) and a terse error tag once (stderr).
+
+*Alternative rejected*: making `ErrRequiredFailed.Error()` return the summary text and omitting the summary from stdout. That would put the summary on stderr instead of stdout, breaking the `--json` symmetry where both modes write their full output to stdout. It would also require the caller to suppress the `"Error: "` prefix for this one error, bleeding doctor semantics into `root.go`.
+
+Unknown flags and positional args use `usageArgs(cobra.NoArgs)` and exit 2, like the other commands.
 
 ### Output format
 

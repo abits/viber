@@ -62,6 +62,8 @@ Released 2026-09-21. Full release: <https://github.com/abits/viber/releases/tag/
 - `git` on `PATH`.
 - Optional, for the scaffold's GitHub scripts (`make repo-init`, `make sync-issues`): [GitHub CLI](https://cli.github.com) (`gh auth login`) and [jq](https://jqlang.github.io/jq/).
 
+Run `viber doctor` to verify that all required and optional tools are installed.
+
 ## Quick start
 
 Interactive:
@@ -122,6 +124,7 @@ Then in the new project:
 
 | Command | Purpose |
 | --- | --- |
+| `viber doctor` | Check that required and optional tools are installed, print remediation hints, and exit non-zero on missing requirements. |
 | `viber init [name] [dir]` | Initialize and populate a new agentic coding project (interactive by default). |
 | `viber version` | Print version, commit, and build date. |
 | `viber update` | Download the latest GitHub release, verify it against `checksums.txt`, and overwrite `~/bin/viber` (Linux/macOS). |

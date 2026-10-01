@@ -13,3 +13,6 @@ var updateLong string
 
 //go:embed docs/version.txt
 var versionLong string
+
+//go:embed docs/doctor.txt
+var doctorLong string

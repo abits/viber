@@ -1,0 +1,34 @@
+NAME
+    viber doctor - check that required and optional tools are installed
+
+SYNOPSIS
+    viber doctor [--json]
+
+DESCRIPTION
+    Probes each external tool that viber and its scaffolds depend on and
+    reports the result. Checks git and openspec are required; gh, gh
+    authentication, jq, markdownlint-cli2, and claude are optional.
+
+    Each failing check names a concrete remediation. A final summary line
+    states the error and warning counts.
+
+    Exits 0 when all required checks pass (optional warnings are allowed).
+    Exits 1 when at least one required check fails.
+    Exits 2 on a usage error (unknown flag or positional argument).
+
+OPTIONS
+    --json
+        Print results as a JSON array instead of human-readable lines.
+        Exit codes are the same as without --json.
+
+EXAMPLES
+    Check all tools:
+        viber doctor
+
+    Check and pipe to jq:
+        viber doctor --json | jq '.[] | select(.status != "ok")'
+
+EXIT STATUS
+    0    all required checks pass
+    1    at least one required check failed
+    2    usage error (unknown flag or positional argument)
