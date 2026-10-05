@@ -89,6 +89,7 @@ func TestEmbeddedTemplateSetLayout(t *testing.T) {
 		".claude/rules/ai-output-style.md",
 		".claude/rules/git-hygiene.md",
 		".claude/rules/pre-commit-checklist.md",
+		".claude/rules/release-readme.md",
 		".claude/rules/security.md",
 		".claude/rules/testing.md",
 		".claude/settings.json",
