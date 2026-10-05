@@ -4,6 +4,20 @@ Scaffold a **vibe-coding** project wired for [Claude Code](https://claude.com/cl
 
 One command turns an empty directory into a project you can hand to `/opsx:explore`: a filled-in scaffold, initialized git repo, an `intend.md` you fill to describe what you're building, and nine role-scoped sub-agents ready to hand off along the SDLC: PM → designer / architect → tech-lead → engineers → QA / security.
 
+## What's new — v0.4.3
+
+Released 2026-10-05. Full release: <https://github.com/abits/viber/releases/tag/v0.4.3>.
+
+- **Release-driven README rule.** `.claude/rules/release-readme.md` (shipped both in viber and in every scaffolded project) requires a `## What's new — vX.Y.Z` section at the top of README on every release.
+- **VERSION reconciled** with the published tag so `make bump-patch` produces the correct next version.
+
+## What's new — v0.4.2
+
+Released 2026-10-04. Full release: <https://github.com/abits/viber/releases/tag/v0.4.2>.
+
+- **`viber doctor` command added.** Runs health checks on the environment (openspec installation, Go toolchain, `gh` auth, etc.), reporting what's missing or misconfigured. Exits cleanly on interrupt; bounded child-process probes so a hanging check can't lock the whole run.
+- Internal: planned and archived the OpenSpec change that drove the doctor feature.
+
 ## What's new — v0.4.1
 
 Released 2026-09-26. Full release: <https://github.com/abits/viber/releases/tag/v0.4.1>.
