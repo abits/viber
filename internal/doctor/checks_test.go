@@ -47,4 +47,11 @@ func TestDefaultChecks(t *testing.T) {
 			t.Errorf("checks[%d] (%s) has empty Remediation", i, c.Name)
 		}
 	}
+
+	// Assert every entry is tagged as a tool-group check.
+	for i, c := range checks {
+		if c.Group != GroupTools {
+			t.Errorf("checks[%d] (%s).Group = %q, want %q", i, c.Name, c.Group, GroupTools)
+		}
+	}
 }

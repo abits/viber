@@ -1,0 +1,17 @@
+ok      git                  2.43.0
+ok      openspec             1.0.0
+ok      gh                   1.0.0
+ok      gh auth              1.0.0
+ok      jq                   1.0.0
+ok      markdownlint-cli2    1.0.0
+ok      claude               1.0.0
+
+Project {{SCAFFOLD}}
+ok      .claude/settings.json valid 
+ok      intend.md present    
+ok      hook scripts present 
+ok      origin on github.com 
+ok      issue sync active    
+ok      .env not tracked     
+ok      .env ignored         
+0 errors, 0 warnings

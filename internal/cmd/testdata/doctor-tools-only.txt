@@ -1,0 +1,8 @@
+ok      git                  2.43.0
+ok      openspec             2.43.0
+ok      gh                   2.43.0
+ok      gh auth              2.43.0
+ok      jq                   2.43.0
+ok      markdownlint-cli2    2.43.0
+ok      claude               2.43.0
+0 errors, 0 warnings

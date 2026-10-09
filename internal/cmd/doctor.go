@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -13,6 +14,7 @@ import (
 // jsonResult is the per-check shape written when --json is requested.
 type jsonResult struct {
 	Name        string `json:"name"`
+	Group       string `json:"group"`
 	Required    bool   `json:"required"`
 	Status      string `json:"status"`
 	Version     string `json:"version,omitempty"`
@@ -35,30 +37,53 @@ func newDoctorCmd() *cobra.Command {
 	return cmd
 }
 
-// runDoctor probes each tool and renders the results to cmd's output writer.
-// It returns doctor.ErrRequiredFailed when at least one required check failed.
+// runDoctor probes each tool, plus the scaffold-level project checks when the
+// working directory lives in a viber scaffold, and renders the results to
+// cmd's output writer. It returns doctor.ErrRequiredFailed when at least one
+// required check failed.
 func runDoctor(cmd *cobra.Command, asJSON bool) error {
-	results := doctor.Run(cmd.Context(), doctor.DefaultChecks())
+	ctx := cmd.Context()
+
+	checks := doctor.DefaultChecks()
+	var projectRoot string
+	if cwd, err := os.Getwd(); err == nil {
+		root, inGit, ok := doctor.DetectProject(ctx, cwd)
+		if ok {
+			projectRoot = root
+			checks = append(checks, doctor.ProjectChecks(root, inGit)...)
+		}
+	}
+
+	results := doctor.Run(ctx, checks)
 	// An interrupted run holds partial results whose error count proves nothing.
-	if err := cmd.Context().Err(); err != nil {
+	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("doctor interrupted: %w", err)
 	}
 
 	if asJSON {
 		return renderJSON(cmd.OutOrStdout(), results)
 	}
-	return renderHuman(cmd.OutOrStdout(), results)
+	return renderHuman(cmd.OutOrStdout(), results, projectRoot)
 }
 
-// renderHuman writes one line per result plus a summary line.
-func renderHuman(w io.Writer, results []doctor.Result) error {
+// renderHuman writes one line per result plus a summary line. When any
+// result belongs to the project group, a `Project <projectRoot>` heading
+// separates the tool lines from the project lines.
+func renderHuman(w io.Writer, results []doctor.Result, projectRoot string) error {
 	var errCount, warnCount int
+	headingPrinted := false
 	for _, r := range results {
 		switch r.Status {
 		case doctor.StatusError:
 			errCount++
 		case doctor.StatusWarning:
 			warnCount++
+		}
+
+		// Insert the project heading immediately before the first project result.
+		if !headingPrinted && r.Check.Group == doctor.GroupProject {
+			fmt.Fprintf(w, "\nProject %s\n", projectRoot)
+			headingPrinted = true
 		}
 
 		// Third column: version when ok, problem otherwise.
@@ -98,6 +123,7 @@ func renderJSON(w io.Writer, results []doctor.Result) error {
 	for i, r := range results {
 		jr := jsonResult{
 			Name:     r.Check.Name,
+			Group:    r.Check.Group,
 			Required: r.Check.Required,
 			Status:   string(r.Status),
 		}

@@ -1,5 +1,6 @@
 NAME
-    viber doctor - check that required and optional tools are installed
+    viber doctor - check that required and optional tools are installed and
+    that the surrounding scaffold is wired correctly
 
 SYNOPSIS
     viber doctor [--json]
@@ -9,8 +10,16 @@ DESCRIPTION
     reports the result. Checks git and openspec are required; gh, gh
     authentication, jq, markdownlint-cli2, and claude are optional.
 
+    When the current working directory lives in a viber scaffold (its
+    project root contains CLAUDE.md, openspec/, and .claude/), doctor also
+    runs a group of project checks: .claude/settings.json validity, the
+    presence of intend.md and hook scripts, whether the origin remote
+    points at github.com, whether the issue-sync pipeline is active, and
+    whether .env is tracked or ignored. Outside a scaffold, the project
+    group is skipped and output is identical to doctor without it.
+
     Each failing check names a concrete remediation. A final summary line
-    states the error and warning counts.
+    states the error and warning counts across both groups.
 
     Exits 0 when all required checks pass (optional warnings are allowed).
     Exits 1 when at least one required check fails.
@@ -18,15 +27,17 @@ DESCRIPTION
 
 OPTIONS
     --json
-        Print results as a JSON array instead of human-readable lines.
-        Exit codes are the same as without --json.
+        Print results as a flat JSON array instead of human-readable
+        lines. Each entry includes a "group" field ("tools" or "project")
+        so consumers can split or filter per group. Exit codes are the
+        same as without --json.
 
 EXAMPLES
-    Check all tools:
+    Check all tools and (inside a scaffold) the project wiring:
         viber doctor
 
-    Check and pipe to jq:
-        viber doctor --json | jq '.[] | select(.status != "ok")'
+    Only inspect project-group entries that did not pass:
+        viber doctor --json | jq '.[] | select(.group == "project" and .status != "ok")'
 
 EXIT STATUS
     0    all required checks pass

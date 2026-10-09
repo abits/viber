@@ -21,7 +21,7 @@ func TestProbe(t *testing.T) {
 			// `echo 1.2.3` exits 0 and prints a version string.
 			return exec.CommandContext(ctx, "sh", append([]string{"-c", "echo 1.2.3"}, args...)...)
 		}
-		r := probe(context.Background(), check)
+		r := probe(context.Background(), check, nil)
 		if r.Status != StatusOK {
 			t.Errorf("status = %q, want ok", r.Status)
 		}
@@ -36,7 +36,7 @@ func TestProbe(t *testing.T) {
 		execCommand = func(ctx context.Context, _ string, args ...string) *exec.Cmd {
 			return exec.CommandContext(ctx, "nonexistent-viber-tool-xyz", args...)
 		}
-		r := probe(context.Background(), check)
+		r := probe(context.Background(), check, nil)
 		if r.Status != StatusWarning {
 			t.Errorf("status = %q, want warning", r.Status)
 		}
@@ -53,7 +53,7 @@ func TestProbe(t *testing.T) {
 		}
 		req := check
 		req.Required = true
-		r := probe(context.Background(), req)
+		r := probe(context.Background(), req, nil)
 		if r.Status != StatusError {
 			t.Errorf("status = %q, want error", r.Status)
 		}
@@ -65,7 +65,7 @@ func TestProbe(t *testing.T) {
 		execCommand = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 			return exec.CommandContext(ctx, "sh", "-c", "echo 'auth failed' >&2; exit 1")
 		}
-		r := probe(context.Background(), check)
+		r := probe(context.Background(), check, nil)
 		if r.Status != StatusWarning {
 			t.Errorf("status = %q, want warning", r.Status)
 		}
@@ -85,7 +85,7 @@ func TestProbe(t *testing.T) {
 		execCommand = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 			return exec.CommandContext(ctx, "sleep", "10")
 		}
-		r := probe(context.Background(), check)
+		r := probe(context.Background(), check, nil)
 		if r.Status != StatusWarning {
 			t.Errorf("status = %q, want warning", r.Status)
 		}
@@ -100,7 +100,7 @@ func TestProbe(t *testing.T) {
 		execCommand = func(ctx context.Context, _ string, _ ...string) *exec.Cmd {
 			return exec.CommandContext(ctx, "sh", "-c", "echo 'nightly-build-xyz'; echo second line")
 		}
-		r := probe(context.Background(), check)
+		r := probe(context.Background(), check, nil)
 		if r.Status != StatusOK {
 			t.Errorf("status = %q, want ok", r.Status)
 		}
@@ -131,6 +131,39 @@ func TestExtractVersion(t *testing.T) {
 	}
 }
 
+func TestProbeFuncDispatch(t *testing.T) {
+	wantResult := Result{Status: StatusWarning, Problem: "something off"}
+	// Probe records prior lookups so the test can prove it was invoked with
+	// the recorded Results snapshot.
+	seen := ""
+	check := Check{
+		Name:  "aggregator",
+		Group: GroupProject,
+		Probe: func(_ context.Context, prior Results) Result {
+			if r, ok := prior["dep"]; ok {
+				seen = string(r.Status)
+			}
+			return wantResult
+		},
+		Remediation: "fix it",
+	}
+
+	prior := Results{"dep": {Status: StatusOK, Check: Check{Name: "dep"}}}
+	got := probe(context.Background(), check, prior)
+
+	if seen != string(StatusOK) {
+		t.Errorf("Probe saw prior[\"dep\"].Status = %q, want %q", seen, StatusOK)
+	}
+	if got.Status != wantResult.Status || got.Problem != wantResult.Problem {
+		t.Errorf("probe returned %+v, want status=%q problem=%q", got, wantResult.Status, wantResult.Problem)
+	}
+	// probe() must stamp the Check onto the returned Result so the renderer
+	// has a single source for Name/Group/Required/Remediation.
+	if got.Check.Name != check.Name || got.Check.Group != check.Group {
+		t.Errorf("Result.Check = %+v, want Name=%q Group=%q", got.Check, check.Name, check.Group)
+	}
+}
+
 func TestProbeTimeoutWithChildHoldingStdout(t *testing.T) {
 	orig, origTimeout := execCommand, probeTimeout
 	defer func() { execCommand, probeTimeout = orig, origTimeout }()
@@ -141,7 +174,7 @@ func TestProbeTimeoutWithChildHoldingStdout(t *testing.T) {
 	}
 
 	start := time.Now()
-	r := probe(context.Background(), Check{Name: "tool", Args: []string{"tool", "--version"}})
+	r := probe(context.Background(), Check{Name: "tool", Args: []string{"tool", "--version"}}, nil)
 	took := time.Since(start)
 
 	if took > 2*time.Second {
