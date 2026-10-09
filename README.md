@@ -11,46 +11,7 @@ Released 2026-10-05. Full release: <https://github.com/abits/viber/releases/tag/
 - **Release-driven README rule.** `.claude/rules/release-readme.md` (shipped both in viber and in every scaffolded project) requires a `## What's new — vX.Y.Z` section at the top of README on every release.
 - **VERSION reconciled** with the published tag so `make bump-patch` produces the correct next version.
 
-## What's new — v0.4.2
-
-Released 2026-10-04. Full release: <https://github.com/abits/viber/releases/tag/v0.4.2>.
-
-- **`viber doctor` command added.** Runs health checks on the environment (openspec installation, Go toolchain, `gh` auth, etc.), reporting what's missing or misconfigured. Exits cleanly on interrupt; bounded child-process probes so a hanging check can't lock the whole run.
-- Internal: planned and archived the OpenSpec change that drove the doctor feature.
-
-## What's new — v0.4.1
-
-Released 2026-09-26. Full release: <https://github.com/abits/viber/releases/tag/v0.4.1>.
-
-- **Agent teams config in every scaffold, off by default.** `.claude/settings.json` now carries `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0`, a `make lint-md` permission, and a `TaskCompleted` hook that blocks while `.env` is tracked in git. `AGENTS.md` explains when a team is worth its token cost and how to opt in.
-- **Agent hand-offs use the documented `@agent-<role>` mention**, and each role has a `color` in its front matter.
-- **Templates can no longer silently shadow each other.** A template set with both `foo` and `foo.tmpl` used to render whichever came last; `viber init` now fails and names both entries (`templates.ErrDuplicateTarget`).
-
-## What's new — v0.4.0
-
-Released 2026-09-24. Full release: <https://github.com/abits/viber/releases/tag/v0.4.0>.
-
-- **viber is scaffolded with viber.** The repository now carries the same scaffold `viber init` generates (`intend.md`, `openspec/`, agents, rules, `/repo-init` and `/sync-issues`). `make dogfood` re-renders the template-owned files; CI's new `scaffold` job runs `make dogfood-check` and fails on drift.
-- **`make lint-md` passes on a fresh scaffold.** `.markdownlint.yaml` lets front matter (`title`, `name`, `description`) stand in for the first-line H1, so generated agents, commands, and skills no longer fail MD041, and `lint-md` skips the files `openspec init` generates.
-- **Scaffolded `CLAUDE.md` counts the agent team correctly** (nine, not seven).
-
-## What's new — v0.3.1
-
-Released 2026-09-23. Full release: <https://github.com/abits/viber/releases/tag/v0.3.1>.
-
-- **Git + GitHub integration in every scaffolded project.** `viber init` now generates `scripts/repo-init.sh` (one-shot `gh repo create --private --push`) and `scripts/sync-issues.sh` (one-way mirror of `openspec/changes/*/tasks.md` → GitHub Issues). Both are surfaced as `make repo-init` / `make sync-issues` targets and as Claude Code slash commands `/repo-init` / `/sync-issues`.
-- **OpenSpec tasks auto-sync.** The scaffold ships a `.claude/settings.json` with a `PostToolUse` hook that runs `sync-issues.sh --auto` in the background whenever Claude writes to a `tasks.md`, so `/opsx:apply` progress reflects into GitHub Issues without manual re-syncing.
-- **Idempotent issue fingerprinting.** Each task is identified by `sha1(change-id|normalised-text)[:12]` embedded in the issue body. Renumbering tasks (`1.3 → 2.1`) doesn't churn issues. Deleting or renaming a task closes the orphaned issue automatically on the next sync.
-
-## What's new — v0.3.0
-
-Released 2026-09-21. Full release: <https://github.com/abits/viber/releases/tag/v0.3.0>.
-
-- **`viber update` now verifies release archives** against `checksums.txt` before overwriting the binary — no unverified swaps of the installed executable.
-- **`viber init` is atomic on a fresh destination**: rendering happens in a temp dir and is renamed into place only after every file is written, so a broken template or full disk leaves nothing behind. Merge behaviour (`--force` onto an existing dir) is unchanged.
-- **`internal/ghfetch`** extracted so `--from` (template tarballs) and `viber update` (release assets) share one GitHub-tarball code path.
-- **Six extra linters wired in** (`revive`, `godot`, `errorlint`, `bodyclose`, `gosec`, `misspell`) with per-symbol doc coverage across the codebase.
-- **`v0.3.0` release CI green on Linux, macOS, and Windows** (linux/darwin/windows × amd64/arm64 archives + `checksums.txt`).
+Earlier releases: see [CHANGELOG.md](CHANGELOG.md).
 
 ## Install
 
@@ -138,7 +99,7 @@ Then in the new project:
 
 | Command | Purpose |
 | --- | --- |
-| `viber doctor` | Check that required and optional tools are installed, print remediation hints, and exit non-zero on missing requirements. |
+| `viber doctor` | Check the required and optional tools viber and its scaffolds depend on; inside a scaffold also runs project checks (settings.json validity, hook scripts, origin remote, issue-sync wiring, `.env` safety). Prints remediation hints and exits non-zero on required failures. `--json` emits a flat array where each entry carries a `group` ("tools" or "project"). |
 | `viber init [name] [dir]` | Initialize and populate a new agentic coding project (interactive by default). |
 | `viber version` | Print version, commit, and build date. |
 | `viber update` | Download the latest GitHub release, verify it against `checksums.txt`, and overwrite `~/bin/viber` (Linux/macOS). |
@@ -183,7 +144,7 @@ The template-owned files are generated, not edited in place:
 
 `master` only changes through pull requests, so a release is a PR followed by a tag:
 
-1. On a branch, bump `VERSION` and add a "What's new" section to this README; open a PR.
+1. On a branch, bump `VERSION`, prepend a `## vX.Y.Z — YYYY-MM-DD` entry to [CHANGELOG.md](CHANGELOG.md), and replace this README's `## What's new — vX.Y.Z` section with the same bullets; open a PR. See `.claude/rules/release-readme.md` for the exact shape.
 2. Merge it once CI is green.
 3. Tag the merge commit and push the tag, or create the release in the GitHub UI with tag `vX.Y.Z` targeting `master`:
 
