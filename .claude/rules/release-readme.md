@@ -1,4 +1,4 @@
-## Release — README and CHANGELOG
+# Release — README and CHANGELOG
 
 Every published GitHub release ships two coordinated updates:
 
