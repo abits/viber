@@ -61,9 +61,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.err = fmt.Errorf("%s is required", f.prompt)
 				return m, nil
 			}
-			if err := f.validate(v); err != nil {
-				m.err = err
-				return m, nil
+			if f.validate != nil {
+				if err := f.validate(v); err != nil {
+					m.err = err
+					return m, nil
+				}
 			}
 			f.set(&m.ans, v)
 			m.idx++
