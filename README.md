@@ -4,12 +4,12 @@ Scaffold a **vibe-coding** project wired for [Claude Code](https://claude.com/cl
 
 One command turns an empty directory into a project you can hand to `/opsx:explore`: a filled-in scaffold, initialized git repo, an `intend.md` you fill to describe what you're building, and nine role-scoped sub-agents ready to hand off along the SDLC: PM → designer / architect → tech-lead → engineers → QA / security.
 
-## What's new — v0.4.3
+## What's new — v0.4.4
 
-Released 2026-10-05. Full release: <https://github.com/abits/viber/releases/tag/v0.4.3>.
+Released 2026-10-16. Full release: <https://github.com/abits/viber/releases/tag/v0.4.4>.
 
-- **Release-driven README rule.** `.claude/rules/release-readme.md` (shipped both in viber and in every scaffolded project) requires a `## What's new — vX.Y.Z` section at the top of README on every release.
-- **VERSION reconciled** with the published tag so `make bump-patch` produces the correct next version.
+- **`viber doctor` checks the scaffold itself.** Run inside a scaffolded project, it adds a second group of checks: `settings.json` validity, `intend.md` presence, hook scripts, the GitHub `origin` remote, issue-sync wiring, and `.env` hygiene; JSON output gains a `group` field.
+- **`viber init` wizard no longer crashes on fields without a validator.** Submitting such a field previously dereferenced a nil validator.
 
 Earlier releases: see [CHANGELOG.md](CHANGELOG.md).
 
