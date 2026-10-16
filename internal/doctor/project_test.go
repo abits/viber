@@ -30,7 +30,8 @@ func TestDetectProject(t *testing.T) {
 			if top == "" {
 				return exec.CommandContext(ctx, "false")
 			}
-			return exec.CommandContext(ctx, "sh", "-c", "echo "+top)
+			// Pass the path as an argument: unquoted, sh eats Windows backslashes.
+			return exec.CommandContext(ctx, "sh", "-c", `printf '%s\n' "$1"`, "sh", top)
 		}
 	}
 
