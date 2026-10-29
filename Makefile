@@ -84,7 +84,7 @@ dogfood-check:
 # Scaffold targets, identical to the ones `viber init` generates. lint-md skips
 # the files `openspec init` generates; `openspec update` overwrites them.
 lint-md:
-	markdownlint-cli2 "**/*.md" "#.claude/skills/openspec-*/**" "#.claude/commands/opsx/**"
+	markdownlint-cli2 "**/*.md" "#node_modules" "#dist" "#.claude/skills/openspec-*/**" "#.claude/commands/opsx/**"
 
 repo-init:
 	bash scripts/repo-init.sh
