@@ -1,110 +1,71 @@
-# Agent team
+# AGENTS.md
 
-This project ships a Claude Code sub-agent team covering the software development lifecycle. Each agent has a scoped responsibility, expected inputs, expected outputs, and explicit hand-off targets.
+Instructions for coding agents working in this repository.
 
-## Plugin marketplace prerequisite
+## Project
 
-Every role in this project can reach into the [`sethdford/claude-skills`](https://github.com/sethdford/claude-skills) marketplace — 454 standards-grounded skills and 173 commands across 9 roles. Add it once:
+**viber** — Scaffold a vibe-coding project wired for Claude Code + OpenSpec.
 
-    /plugin marketplace add sethdford/claude-skills
+`viber init` verifies that `openspec` is installed, creates a directory, initializes git, renders
+a template set into it, and runs `openspec init`. viber is scaffolded with itself.
 
-Each agent file lists the plugins it expects and the exact `/plugin install …` line — fine-grained per plugin, or the whole-role shortcut via `claude install github:sethdford/claude-skills/<role>`. Grab everything (all 57 plugins across all 9 roles) with:
+Read `intend.md` for the current problem, goals, and constraints before proposing or changing anything.
 
-    claude install github:sethdford/claude-skills
+## Workflow
 
-The cross-role `sdlc-cross-role` plugin gives you lifecycle commands that span every role — install it separately regardless of which roles you use:
+Requirements and tech decisions are drafted with OpenSpec; everything lives under `openspec/`.
 
-    /plugin install sdlc-cross-role
+- `openspec/specs/` describes what the system does today.
+- `openspec/changes/<name>/` holds work in flight: `proposal.md` (why), `design.md` (how), `specs/` (behaviour deltas), and `tasks.md` (implementation steps).
+- Start new work as a change (`openspec new change "<name>"`), implement it task by task, ticking each box in `tasks.md`, then archive it (`openspec archive <name>`).
+- Run `openspec list` to see active changes and `openspec validate <name>` before handing a change off.
 
-Commands from `sdlc-cross-role`: `/full-lifecycle`, `/feature-kickoff`, `/quality-gate`, `/pre-launch-review`, `/design-review`, `/security-review`, `/post-incident-review`, `/sprint-ceremony`.
+## Layout
 
-## Flow
+    cmd/viber/            main; injects version/commit/date via ldflags
+    internal/cmd/         Cobra command tree; owns error reporting + exit codes
+    internal/wizard/      Bubble Tea prompt for the values init needs
+    internal/steps/       ordered, side-effecting units of work + two runners
+    internal/templates/   embedded and remote template sets, rendering
+    internal/doctor/      `viber doctor` tool and project checks
+    internal/updater/     self-update from GitHub releases
+    internal/{gitrepo,openspec,tty,version}/  thin helpers
 
-    intend.md
-        ↓
-    product-manager  →  proposal.md
-        ↓                       ↘
-    designer                 architect        →  design.md · ADRs · tasks.md
-        ↓                       ↓
-        └──────── tech-lead ────┴──── plan · standards · sequencing
-                       ↓
-    ┌──────────────────┬───────────────────┬──────────────────┐
-    backend-engineer   frontend-engineer   devops-engineer
-        ↓                   ↓                   ↓
-    qa-engineer  ←─────────┴──────────────  security-reviewer
-        ↓
-    merge
+The dependency direction is `cmd -> steps -> {templates, gitrepo, openspec}`. Keep it acyclic;
+`steps` is what lets the TUI and the plain runner share one definition of the work.
 
-## How to invoke
+## Invariants
 
-- `Task` tool with `subagent_type: <role>`
-- `@agent-<role>` shorthand in a Claude Code message (e.g. `@agent-architect`)
-- Free-form: mention the role and hand-off explicitly
+- **Exit codes**: `0` success, `1` runtime error, `2` usage error. `internal/cmd` is the single
+  place that prints user-facing errors — commands and step runners return errors, they do not
+  print them. Mark input errors with `UsageError(cmd, err)` so they exit 2 and show usage.
+- **Ordering in `runInit`**: side-effect-free checks (`steps.VerifyOpenspec`) come first, then
+  `RenderTemplates` (which creates the destination itself, atomically when it doesn't already
+  exist - see `templates.Render`), then `GitInit`. A render failure on a fresh scaffold
+  leaves nothing behind; don't reorder `GitInit` before `RenderTemplates`, it requires the
+  directory to already exist.
+- **`templates.Data`**: every field must be referenced by at least one template.
+  `TestEmbeddedTemplatesUseEveryDataField` enforces this — do not add a field "for later".
+- **Context**: `steps.Runner` checks `ctx.Err()` between steps, and both Bubble Tea programs are
+  built with `tea.WithContext`. Keep new long-running work cancellable.
 
-## Agent teams mode (experimental, off by default)
+## Conventions
 
-Claude Code can launch the roles above as independent teammate sessions — each with its own
-context window, a shared self-claiming task list, and direct inter-agent messaging — instead of
-ephemeral subagents. `.claude/settings.json` ships with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0`,
-so this is off until you opt in. The same file pre-approves `make lint-md` so a running team
-doesn't stall on repeated permission prompts in the lead session, and a `TaskCompleted` hook
-blocks marking a task done while `.env` is tracked in git, as a last-resort gate on
-`.claude/rules/security.md`.
+- Format Go with `goimports -w` (fallback: `gofmt -w`).
+- Before finishing, run `golangci-lint run ./... && go test ./...`; a red result is blocking.
+  Lint config: `.golangci.yml` (v2, `default: standard`).
+- Exported identifiers carry doc comments; see <https://go.dev/doc/comment>.
+- `make test` / `make lint` / `make build`; `make bump-patch` commits and tags a release.
+- The rules in `.claude/rules/` (git hygiene, testing, error handling, security, documentation,
+  output style, releases) apply to every agent, not only Claude Code.
 
-To opt in, set the variable to `1` in `.claude/settings.json` (or export it for one shell). Also
-consider `"subagentPromptCacheTtl": "1h"`: in-process teammates otherwise fall back to a
-5-minute prompt cache, though the API bills 1-hour cache writes at a higher rate.
+## Dogfooding
 
-**Most of the flow above is a poor fit for a team.** Agent teams add coordination overhead and
-cost significantly more tokens than a single session, and pay off only when the work is genuinely
-independent. The PM → architect → tech-lead hand-offs are sequential and single-owner — invoke
-them one at a time (`@agent-<role>`, above) rather than asking for a team. The two places a team is
-worth its cost:
+Files listed in `DOGFOOD_FILES` (`Makefile`) are owned by `internal/templates/default/`: edit the
+template, then run `make dogfood`. CI runs `make dogfood-check` and fails on drift. `AGENTS.md`,
+`CLAUDE.md`, `README.md`, `Makefile`, `.gitignore`, and `.claude/settings.json` are repo-owned
+supersets of their templates; when a template for one of them changes, merge the change here by hand.
 
-- **Implementation**: `backend-engineer`, `frontend-engineer`, and `devops-engineer` can own
-  disjoint files and run in parallel. Ask explicitly, e.g. "spawn a team: backend-engineer,
-  frontend-engineer, and devops-engineer to implement tasks.md in parallel."
-- **Early, ambiguous exploration**: `product-manager`, `designer`, and `architect` debating an
-  under-specified `intend.md` from different angles before anyone commits to a proposal.
+## Markdown
 
-Enabling agent teams also changes ordinary delegation: a subagent Claude names on its own then
-launches as a teammate too, so a plain single-role hand-off can unexpectedly balloon into a full
-team session. That is the main reason this scaffold leaves the feature off. If it happens, tell
-Claude to spawn a subagent instead of a teammate, or set the variable back to `0` — Claude Code
-re-reads it on save, no restart needed.
-
-Further trade-offs to weigh:
-
-- Interactive sessions only; it has no effect under `-p`/headless runs (roles still spawn as
-  ordinary subagents there).
-- No session resumption: `/resume` and `/rewind` drop in-process teammates.
-- One team per session, no nested teams, and per-teammate permissions are fixed at spawn time.
-- Display mode defaults to `in-process` (works in any terminal); split panes need tmux or iTerm2,
-  which this scaffold doesn't assume are installed, so it's left unset rather than forced on.
-
-See <https://code.claude.com/docs/en/agent-teams.md>.
-
-## Roles
-
-| Role              | File                                    | Focus                                                       |
-|-------------------|-----------------------------------------|-------------------------------------------------------------|
-| Product manager   | `.claude/agents/product-manager.md`     | Requirements, user stories, acceptance criteria             |
-| Designer          | `.claude/agents/designer.md`            | Research, UX strategy, design system, prototypes, a11y      |
-| Architect         | `.claude/agents/architect.md`           | System design, ADRs, tech choices, task breakdown           |
-| Tech lead         | `.claude/agents/tech-lead.md`           | Delivery plan, standards, sequencing, cross-team RFCs       |
-| Backend engineer  | `.claude/agents/backend-engineer.md`    | Server/API implementation + unit tests                      |
-| Frontend engineer | `.claude/agents/frontend-engineer.md`   | UI implementation + component tests                         |
-| DevOps engineer   | `.claude/agents/devops-engineer.md`     | CI/CD, IaC, release plumbing                                |
-| Security reviewer | `.claude/agents/security-reviewer.md`   | Threat model + review before merge                          |
-| QA engineer       | `.claude/agents/qa-engineer.md`         | Test plan + integration/E2E tests                           |
-
-## Slash commands
-
-Two project-local slash commands wire this scaffold into GitHub. They're thin wrappers over the scripts in `scripts/`, so `make repo-init` / `make sync-issues` do the same thing from a shell.
-
-- `/repo-init` — turns the local scaffold into a GitHub-hosted repo (`git init` if needed, initial commit if none, `gh repo create --private --push`). Idempotent: re-running is safe.
-- `/sync-issues` — mirrors every `- [ ] N.M Task text` line under `openspec/changes/*/tasks.md` into a GitHub Issue and reconciles state (ticked → closed, un-ticked → reopened, deleted/renamed → orphan closed). One-way (tasks.md is source of truth). Labels every issue `openspec` + `openspec/<change-id>`.
-
-`.claude/settings.json` also carries a `PostToolUse` hook that runs `sync-issues.sh --auto` in the background whenever `openspec/changes/*/tasks.md` is written, so `/opsx:apply` progress reflects into GitHub without manual re-syncing.
-
-Prereqs for both: `gh` (authenticated via `gh auth login`), `jq`. See `README.md`.
+Lint prose with `make lint-md` (`markdownlint-cli2`, config `.markdownlint.yaml`).

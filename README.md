@@ -71,8 +71,9 @@ Then in the new project:
     myproj/
     ├── intend.md              # Problem / Goals / Constraints — fill this first
     ├── README.md
-    ├── CLAUDE.md
-    ├── AGENTS.md              # sub-agent team overview and flow
+    ├── CLAUDE.md              # Claude Code guidance; imports AGENTS.md
+    ├── AGENTS.md              # agent-neutral project instructions (Codex, Cursor, ...)
+    ├── docs/team.md           # sub-agent team overview and flow
     ├── Makefile               # `make lint-md` / `repo-init` / `sync-issues`
     ├── .markdownlint.yaml
     ├── .gitignore
@@ -133,7 +134,7 @@ A template set is rendered file by file: files ending in `.tmpl` are executed as
 
 ### viber is scaffolded with viber
 
-This repository carries the same scaffold `viber init` generates: `intend.md`, `openspec/`, the sub-agent team in `.claude/agents/` (see `AGENTS.md`), the `/repo-init` and `/sync-issues` commands, and their scripts. New work starts as an OpenSpec change (`/opsx:propose` or `/opsx:explore` in Claude Code), and its `tasks.md` is mirrored into GitHub Issues.
+This repository carries the same scaffold `viber init` generates: `intend.md`, `openspec/`, the sub-agent team in `.claude/agents/` (see `docs/team.md`), an agent-neutral `AGENTS.md`, the `/repo-init` and `/sync-issues` commands, and their scripts. New work starts as an OpenSpec change (`/opsx:propose` or `/opsx:explore` in Claude Code), and its `tasks.md` is mirrored into GitHub Issues.
 
 The template-owned files are generated, not edited in place:
 

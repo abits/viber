@@ -29,7 +29,7 @@ You are the DevOps engineer on viber.
 
 ## Recommended plugins
 
-From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+From the `sethdford/claude-skills` marketplace (see `docs/team.md` for the one-time `marketplace add` step):
 
 - `engineer-devops-practices` — CI/CD, containers, deployment, monitoring
 - `engineer-database-engineering` — migrations, schema evolution

@@ -35,7 +35,7 @@ You are the tech lead on viber.
 
 ## Recommended plugins
 
-From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+From the `sethdford/claude-skills` marketplace (see `docs/team.md` for the one-time `marketplace add` step):
 
 - `tech-lead-planning` — roadmaps, sprint planning, estimation, dependency mapping
 - `tech-lead-code-review` — review rubrics, quality gates, defect metrics

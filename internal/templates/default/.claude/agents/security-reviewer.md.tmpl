@@ -32,7 +32,7 @@ Security rules: apply `.claude/rules/security.md`.
 
 ## Recommended plugins
 
-From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+From the `sethdford/claude-skills` marketplace (see `docs/team.md` for the one-time `marketplace add` step):
 
 - `security-threat-modeling` — STRIDE, attack surface, trust boundaries, risk
 - `security-application-security` — SAST/DAST, API security, dependency scanning
