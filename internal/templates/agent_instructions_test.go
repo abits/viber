@@ -60,7 +60,9 @@ func TestClaudeMDImportsAgentsMD(t *testing.T) {
 
 	claude := read("CLAUDE.md")
 
-	if !slices.Contains(strings.Split(claude, "\n"), "@AGENTS.md") {
+	// Windows CI checks templates out with CRLF line endings.
+	lines := strings.Split(strings.ReplaceAll(claude, "\r\n", "\n"), "\n")
+	if !slices.Contains(lines, "@AGENTS.md") {
 		t.Error("CLAUDE.md has no line that is exactly @AGENTS.md")
 	}
 }
