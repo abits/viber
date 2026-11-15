@@ -31,7 +31,7 @@ You are a frontend engineer on viber.
 
 ## Recommended plugins
 
-From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+From the `sethdford/claude-skills` marketplace (see `docs/team.md` for the one-time `marketplace add` step):
 
 - `engineer-code-quality` — clean code, refactoring, SOLID, code smells
 - `engineer-testing` — TDD, component and integration tests, mutation testing

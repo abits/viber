@@ -31,7 +31,7 @@ Scoped tasks → `@agent-backend-engineer`, `@agent-frontend-engineer`, `@agent-
 
 ## Recommended plugins
 
-From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+From the `sethdford/claude-skills` marketplace (see `docs/team.md` for the one-time `marketplace add` step):
 
 - `architect-system-design` — decomposition, DDD, microservices, event-driven, CQRS
 - `architect-decision-making` — ADRs, technology radar, build-vs-buy, migration strategy

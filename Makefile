@@ -52,12 +52,12 @@ release:
 # viber is scaffolded with itself. DOGFOOD_FILES are owned by the embedded
 # template set: `make dogfood` copies them verbatim from a fresh render, and
 # `make dogfood-check` (run in CI) fails when any of them has drifted. Edit
-# them under internal/templates/default/, never in place. CLAUDE.md,
+# them under internal/templates/default/, never in place. AGENTS.md, CLAUDE.md,
 # README.md, Makefile, .gitignore, and .claude/settings.json are repo-owned
 # supersets of their templates and are merged by hand.
 DOGFOOD_NAME := viber
 DOGFOOD_DESC := Scaffold a vibe-coding project wired for Claude Code + OpenSpec.
-DOGFOOD_FILES := AGENTS.md .markdownlint.yaml \
+DOGFOOD_FILES := docs/team.md .markdownlint.yaml \
 	scripts/repo-init.sh scripts/sync-issues.sh \
 	.claude/commands/repo-init.md .claude/commands/sync-issues.md \
 	$(patsubst internal/templates/default/%.tmpl,%,$(wildcard \
