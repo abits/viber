@@ -42,7 +42,7 @@ Files that differ by platform live under `_slots/<slot>/...` in the template set
 Initial slots and mappings:
 
 | Slot | claude | gemini | codex / opencode |
-|------|--------|--------|------------------|
+| ---- | ------ | ------ | ---------------- |
 | `entrypoint` (`CLAUDE.md`/`GEMINI.md` body, imports `@AGENTS.md`) | `CLAUDE.md` | `GEMINI.md` | omitted |
 | `agents` | `.claude/agents` | omitted | omitted |
 | `commands` | `.claude/commands` | omitted | omitted |
