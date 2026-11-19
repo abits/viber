@@ -29,7 +29,7 @@ Once the proposal has acceptance criteria the human accepts, hand off to `@agent
 
 ## Recommended plugins
 
-From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+From the `sethdford/claude-skills` marketplace (see `docs/team.md` for the one-time `marketplace add` step):
 
 - `pm-discovery` — customer interviews, assumption mapping, opportunity sizing
 - `pm-strategy` — vision, OKRs, strategic bets

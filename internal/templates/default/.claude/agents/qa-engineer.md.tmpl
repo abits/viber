@@ -33,7 +33,7 @@ Testing rules: apply `.claude/rules/testing.md`.
 
 ## Recommended plugins
 
-From the `sethdford/claude-skills` marketplace (see `AGENTS.md` for the one-time `marketplace add` step):
+From the `sethdford/claude-skills` marketplace (see `docs/team.md` for the one-time `marketplace add` step):
 
 - `qa-test-strategy` — pyramid, risk-based, coverage strategy
 - `qa-functional-testing` — boundary analysis, equivalence, exploratory

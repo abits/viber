@@ -58,7 +58,8 @@ func scaffoldExec(scaffoldDir string) func(context.Context, string, ...string) *
 		if name == "git" {
 			switch {
 			case slices.Contains(args, "rev-parse"):
-				return exec.CommandContext(ctx, "sh", "-c", "echo "+scaffoldDir)
+				// Pass the path as an argument: unquoted, sh eats Windows backslashes.
+				return exec.CommandContext(ctx, "sh", "-c", `printf '%s\n' "$1"`, "sh", scaffoldDir)
 			case slices.Contains(args, "remote"):
 				return exec.CommandContext(ctx, "sh", "-c", "echo https://github.com/me/x.git")
 			case slices.Contains(args, "ls-files"):

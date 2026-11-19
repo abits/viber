@@ -99,6 +99,7 @@ func TestEmbeddedTemplateSetLayout(t *testing.T) {
 		"CLAUDE.md",
 		"Makefile",
 		"README.md",
+		"docs/team.md",
 		"intend.md",
 		"scripts/repo-init.sh",
 		"scripts/sync-issues.sh",

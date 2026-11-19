@@ -57,7 +57,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.2
+          version: v2.14.0
 
   # viber is scaffolded with itself: the template-owned files must match a
   # fresh render, and the scaffold's markdown must pass its own lint config.

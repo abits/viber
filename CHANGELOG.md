@@ -4,6 +4,13 @@ All notable, user-visible changes land here. The README carries only the most re
 
 Entries follow the shape documented in `.claude/rules/release-readme.md`: a `## vX.Y.Z — <date>` heading, a link to the GitHub release, and 2–5 bullets derived from `git log vPREV..vX.Y.Z --oneline --no-merges`. Newest first; never retro-edit a shipped entry (mistakes get a follow-up release note).
 
+## v0.4.4 — 2026-10-16
+
+Release: <https://github.com/abits/viber/releases/tag/v0.4.4>.
+
+- **`viber doctor` checks the scaffold itself.** Run inside a scaffolded project, it adds a second group of checks: `settings.json` validity, `intend.md` presence, hook scripts, the GitHub `origin` remote, issue-sync wiring, and `.env` hygiene; JSON output gains a `group` field.
+- **`viber init` wizard no longer crashes on fields without a validator.** Submitting such a field previously dereferenced a nil validator.
+
 ## v0.4.3 — 2026-10-05
 
 Release: <https://github.com/abits/viber/releases/tag/v0.4.3>.

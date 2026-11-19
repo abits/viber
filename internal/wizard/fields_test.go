@@ -1,6 +1,36 @@
 package wizard
 
-import "testing"
+import (
+	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+func TestUpdateHandlesFieldWithNilValidate(t *testing.T) {
+	m := New(Answers{Name: "ok"})
+	for _, f := range fields {
+		if f.validate != nil {
+			continue
+		}
+		m.idx = indexOf(t, f.prompt)
+		m.primeInput()
+		m.input.SetValue("anything")
+		if _, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter}); m.err != nil {
+			t.Fatalf("Update returned err %v on nil-validate field %q", m.err, f.prompt)
+		}
+	}
+}
+
+func indexOf(t *testing.T, prompt string) int {
+	t.Helper()
+	for i, f := range fields {
+		if f.prompt == prompt {
+			return i
+		}
+	}
+	t.Fatalf("no wizard field with prompt %q", prompt)
+	return -1
+}
 
 func TestProjectNameValidation(t *testing.T) {
 	validate := fieldByPrompt(t, "Project name").validate
